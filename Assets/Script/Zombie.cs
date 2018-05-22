@@ -29,7 +29,7 @@ public class Zombie : MonoBehaviour, IKillable {
         anime.SetBool(inRangeID, (player.transform.position - transform.position).magnitude < m_Attack_Reach);
     }
 
-    public void takeDamage (int basedamage, bool headshot)
+    public void TakeDamage (int basedamage, bool headshot)
     {
         int damage = headshot ? basedamage * 3 : basedamage;
         m_Health = Mathf.Max(m_Health - damage, 0);

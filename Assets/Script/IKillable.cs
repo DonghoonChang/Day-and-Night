@@ -1,4 +1,4 @@
 ﻿interface IKillable {
 
-    void takeDamage(int damage, bool headhshot = false);
+    void TakeDamage(int damage, bool headhshot = false);
 }

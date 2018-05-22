@@ -86,14 +86,13 @@ public class Player : MonoBehaviour {
     {
         RaycastHit hit;
         if (Physics.Raycast(cam.transform.position, cam.transform.TransformDirection(Vector3.forward), out hit, Mathf.Infinity, Physics.AllLayers, QueryTriggerInteraction.Collide))
-        {   
-            if (hit.transform.root.tag == "Zombie")
+        {
+            string rootTag = hit.transform.root.tag;
+            
+            if (rootTag == "Enemy")
             {
-                Zombie script = hit.transform.root.transform.GetComponent<Zombie>();
-                if (script == null)
-                    Debug.Log("We've got a problem here");
-                else { }
-                    //hit.transform.gameObject.GetComponent<Zombie>().takeDamage(weapon.BaseDamage);
+                bool headshot = hit.transform.name.ToLower().Contains("head");
+                hit.transform.root.transform.GetComponent<Zombie>().TakeDamage(weapon.BaseDamage, headshot);
             }
             else
             {
