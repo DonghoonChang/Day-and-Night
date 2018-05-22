@@ -5,6 +5,9 @@ TagManager:
   serializedVersion: 2
   tags:
   - Terrain
+  - Fire
+  - Zombie
+  - BodyParts
   layers:
   - Default
   - TransparentFX

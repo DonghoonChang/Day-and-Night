@@ -14,6 +14,7 @@ public class Player : MonoBehaviour {
     [SerializeField] private float m_gravityMultiplier = 2f;
     [SerializeField] bool m_isWalking = true;
 
+    public Weapon weapon;
     public GameObject cam;
     public CharacterController characterCtrl;
     public GameObject bulletMark;
@@ -38,9 +39,9 @@ public class Player : MonoBehaviour {
     private void FixedUpdate()
     {
         yaw += Input.GetAxis("Mouse Y") * m_SensitivityY;
+        pitch += Input.GetAxis("Mouse X") * m_SensitivityX;
         yaw = Mathf.Min(yaw, 90f);
         yaw = Mathf.Max(yaw, -90f);
-        pitch += Input.GetAxis("Mouse X") * m_SensitivityX;
         pitch %= 360f;
 
         transform.eulerAngles = new Vector3(0, pitch, 0);
@@ -85,11 +86,24 @@ public class Player : MonoBehaviour {
     {
         RaycastHit hit;
         if (Physics.Raycast(cam.transform.position, cam.transform.TransformDirection(Vector3.forward), out hit, Mathf.Infinity, Physics.AllLayers, QueryTriggerInteraction.Collide))
-        {
+        {   
+            if (hit.transform.root.tag == "Zombie")
+            {
+                Zombie script = hit.transform.root.transform.GetComponent<Zombie>();
+                if (script == null)
+                    Debug.Log("We've got a problem here");
+                else { }
+                    //hit.transform.gameObject.GetComponent<Zombie>().takeDamage(weapon.BaseDamage);
+            }
+            else
+            {
+                Debug.DrawRay(cam.transform.position, cam.transform.TransformDirection(Vector3.forward) * hit.distance, Color.red, 0.5f);
+                GameObject mark = Instantiate(bulletMark, hit.point, Quaternion.LookRotation(hit.normal));
+                Destroy(mark, 0.5f);
+            }
+
             Debug.Log(hit.transform.name);
-            Debug.DrawRay(cam.transform.position, cam.transform.TransformDirection(Vector3.forward) * hit.distance, Color.red, 0.5f);
-            GameObject mark = Instantiate(bulletMark, hit.point, Quaternion.LookRotation(hit.normal));
-            Destroy(mark, 0.5f);
+            Debug.Log(hit.transform.tag);
         }
     }
 }
