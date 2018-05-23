@@ -92,7 +92,7 @@ public class Player : MonoBehaviour {
             if (rootTag == "Enemy")
             {
                 bool headshot = hit.transform.name.ToLower().Contains("head");
-                hit.transform.root.transform.GetComponent<Zombie>().TakeDamage(weapon.BaseDamage, headshot);
+                hit.transform.root.transform.GetComponent<EnemyController>().TakeDamage(weapon.BaseDamage, headshot);
             }
             else
             {

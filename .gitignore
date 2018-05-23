@@ -34,3 +34,7 @@ sysinfo.txt
 # Builds
 *.apk
 *.unitypackage
+
+Assets/Downloaded Assets
+Assets/SampleScenes
+Assets/Standard Assets
