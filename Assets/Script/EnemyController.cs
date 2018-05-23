@@ -1,30 +1,33 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
+using UnityEngine.AI;
 
 
-[RequireComponent(typeof(Animator))]
-public class EnemyController : MonoBehaviour{
+public class EnemyController : MonoBehaviour
+{
 
-    /*
-     * Controls Enemy Stats and Animation
-     */
-    [SerializeField] [Range(0, 150)] int m_Health = 150;
+    [SerializeField] float health = 150f;
+    [SerializeField] float headshotMultiplier = 3f;
+    [SerializeField] int exp = 15;
 
-    public EnemyNavController navController;
-
-    void Awake() {
-    }
-
-
-    void Update() {
-    }
-
-    public void TakeDamage (int basedamage, bool headshot)
+    public Animator animator;
+    public GameObject player;
+    EnemyNavController navController;
+    void Awake()
     {
-        int damage = headshot ? basedamage * 3 : basedamage;
-        m_Health -= damage;
-        if (m_Health == 0)
-        {
-            navController.isDead();
-        }
+        navController = GetComponent<EnemyNavController>();
+    }
+
+
+    void Update()
+    {
+
+    }
+    
+    public void TakeDamage(float baseDamge, bool headshot)
+    {
+        health = headshot ? health - baseDamge * headshotMultiplier : health - baseDamge;
+        if (health == 0)
+            navController.IsDead();
     }
 }

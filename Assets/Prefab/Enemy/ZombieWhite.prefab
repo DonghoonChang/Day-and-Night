@@ -96,7 +96,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4592680665389986}
   - component: {fileID: 95380171027700866}
-  - component: {fileID: 114638548810816318}
   m_Layer: 0
   m_Name: ZombieWhite
   m_TagString: Enemy
@@ -2725,20 +2724,7 @@ Animator:
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
---- !u!114 &114638548810816318
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1084763834439206}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d402bd350270c044bb79f15c0b609cdf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Health: 150
-  m_Speed_Walk: 5
-  m_Attack_Reach: 5
+  m_KeepAnimatorControllerStateOnDisable: 0
 --- !u!135 &135284914739700918
 SphereCollider:
   m_ObjectHideFlags: 1
@@ -2764,6 +2750,7 @@ SkinnedMeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RenderingLayerMask: 4294967295
   m_Materials:
   - {fileID: 2100000, guid: 11deda9a2ce04bf47a65f12b3fe4f41a, type: 2}
   m_StaticBatchInfo:
@@ -2873,6 +2860,7 @@ SkinnedMeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RenderingLayerMask: 4294967295
   m_Materials:
   - {fileID: 2100000, guid: 8037d301b260d214fbea59e83e088904, type: 2}
   m_StaticBatchInfo:
@@ -2982,6 +2970,7 @@ SkinnedMeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RenderingLayerMask: 4294967295
   m_Materials:
   - {fileID: 2100000, guid: 5c58162bb014ebb4a9c8f7de54db385b, type: 2}
   m_StaticBatchInfo:
@@ -3091,6 +3080,7 @@ SkinnedMeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RenderingLayerMask: 4294967295
   m_Materials:
   - {fileID: 2100000, guid: bc576d21e3d35fb4fb79cfcdfe69b0ef, type: 2}
   m_StaticBatchInfo:
@@ -3200,6 +3190,7 @@ SkinnedMeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RenderingLayerMask: 4294967295
   m_Materials:
   - {fileID: 2100000, guid: 8037d301b260d214fbea59e83e088904, type: 2}
   m_StaticBatchInfo:
@@ -3309,6 +3300,7 @@ SkinnedMeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RenderingLayerMask: 4294967295
   m_Materials:
   - {fileID: 2100000, guid: d56403f38c9dac8488e18148e65a9df1, type: 2}
   m_StaticBatchInfo:

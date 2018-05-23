@@ -15,7 +15,7 @@ public class Player : MonoBehaviour {
     [SerializeField] bool m_isWalking = true;
 
     public Weapon weapon;
-    public GameObject cam;
+    public Camera cam;
     public CharacterController characterCtrl;
     public GameObject bulletMark;
     private float yaw = 0;
@@ -23,6 +23,7 @@ public class Player : MonoBehaviour {
 
     void Awake()
     {
+        cam = Camera.main;
         characterCtrl = GetComponent<CharacterController>();
     }
     // Use this for initialization
@@ -40,8 +41,7 @@ public class Player : MonoBehaviour {
     {
         yaw += Input.GetAxis("Mouse Y") * m_SensitivityY;
         pitch += Input.GetAxis("Mouse X") * m_SensitivityX;
-        yaw = Mathf.Min(yaw, 90f);
-        yaw = Mathf.Max(yaw, -90f);
+        yaw = Mathf.Clamp(yaw, -90f, 90f);
         pitch %= 360f;
 
         transform.eulerAngles = new Vector3(0, pitch, 0);

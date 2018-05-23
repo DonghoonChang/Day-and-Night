@@ -429,7 +429,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4205049037027344}
   - component: {fileID: 95529271053266482}
-  - component: {fileID: 114995248250114160}
   m_Layer: 0
   m_Name: ZombieGreen
   m_TagString: Enemy
@@ -1445,20 +1444,6 @@ Animator:
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorControllerStateOnDisable: 0
---- !u!114 &114995248250114160
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1733168398174270}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d402bd350270c044bb79f15c0b609cdf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Health: 150
-  m_Speed_Walk: 5
-  m_Attack_Reach: 5
 --- !u!137 &137066768818306932
 SkinnedMeshRenderer:
   m_ObjectHideFlags: 1

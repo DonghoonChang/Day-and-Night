@@ -96,9 +96,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4592680665389986}
   - component: {fileID: 95380171027700866}
-  - component: {fileID: 114638548810816318}
   - component: {fileID: 195261476892187670}
-  - component: {fileID: 114083151818015164}
   m_Layer: 0
   m_Name: ZombieWhite Exp
   m_TagString: Enemy
@@ -2722,43 +2720,12 @@ Animator:
   m_Controller: {fileID: 9100000, guid: 7152581f5a0e9c848a52899b743dbfd0, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
-  m_ApplyRootMotion: 1
+  m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorControllerStateOnDisable: 0
---- !u!114 &114083151818015164
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1084763834439206}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 48bf8c91eb61735418d661b3ae97cb40, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Player: {fileID: 0}
-  m_ReachableRange: 3
-  m_ExposedRange: 8
-  m_AlertedRange: 16
-  m_IdleSpeed: 5
-  m_WalkingSpeed: 15
-  player: {fileID: 0}
-  animator: {fileID: 95380171027700866}
---- !u!114 &114638548810816318
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1084763834439206}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d402bd350270c044bb79f15c0b609cdf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Health: 150
 --- !u!135 &135284914739700918
 SphereCollider:
   m_ObjectHideFlags: 1
@@ -3440,7 +3407,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.5
-  m_Speed: 3.5
+  m_Speed: 0.8
   m_Acceleration: 8
   avoidancePriority: 50
   m_AngularSpeed: 120
