@@ -9,105 +9,69 @@ public class EnemyNavController : MonoBehaviour
     /*
      * Controlls Enemy Navigation and Animation 
      */
-    [SerializeField] [Range(0f, 5f)] float reachableRange; //The range the enemy is able to hit the player
-    [SerializeField] [Range(0f, 10f)] float exposedRange; //The range the player presence was exposed to the enemy
-    [SerializeField] [Range(0f, 20f)] float alertedRange; //The range the enemy actually knows where the player is
-    [SerializeField] [Range(0f, 20f)] float rotationSpeed = 5f; //The range the enemy actually knows where the player is
-    [SerializeField] [Range(0f, 2f)] float alertedSpeed = 0.8f;
-    [SerializeField] [Range(0f, 2f)] float exposedSpeed = 1.5f;
+    [SerializeField] [Range(0f, 20f)] float rotationSpeed; //The range the enemy actually knows where the player is
+    [SerializeField] [Range(0f, 5f)] float stoppingDistance;
+    [SerializeField] [Range(0f, 2f)] float walkingSpeed;
 
+    /*
+     * Components 
+     */
     public GameObject player;
-    public Animator animator;
+    Rigidbody[] ragdoll;
+    Animator animator;
     NavMeshAgent agent;
 
-    int deadID = Animator.StringToHash("Dead");
     int walkingID = Animator.StringToHash("Walking");
     int inRangeID = Animator.StringToHash("InRange");
+    int staggerID = Animator.StringToHash("Staggered");
 
-    bool isReachable = false;
-    bool isExposed = false;
-    bool isAlerted = false;
     bool isAttacking = false;
-    bool isWalking = false;
-    bool isDead = false;
+    float deathTime = 10f;
 
-    float currentSpeed;
 
     void Awake()
     {
+        animator = GetComponent<Animator>();
         agent = GetComponent<NavMeshAgent>();
-        agent.stoppingDistance = reachableRange / 1.5f;
-        currentSpeed = alertedSpeed;
-        agent.speed = currentSpeed;
-    }
+        ragdoll = GetComponentsInChildren<Rigidbody>();
+        
+        agent.stoppingDistance = stoppingDistance;
+        agent.speed = walkingSpeed;
 
+        foreach(Rigidbody rb in ragdoll)
+        {
+            rb.isKinematic = true;
+        }
+    }
 
     void Update()
     {
-
-        float distance = Vector3.Distance(player.transform.position, transform.position);
-        isReachable = distance < reachableRange;
-        isExposed = distance < exposedRange;
-        isAlerted = distance < alertedRange;
-
-        if (isAlerted)
-        {
-            if (!isWalking)
-                StartWalking();
-
-            if (isReachable)
-            {
-                if (!isAttacking)
-                {
-                    FacePlayer();
-                    StopWalking();
-                    StartAttacking();
-                }
-            }
-            else
-            {
-                if (isAttacking)
-                    StopAttacking();
-            }
-
-        }
-        else
-        {
-            if (isWalking)
-                StopWalking();
-
-        }
+        if (isAttacking)
+            FacePlayer();
     }
 
     void StartWalking()
     {
-        isWalking = true;
         agent.isStopped = false;
         animator.SetBool(walkingID, true);
-        StartCoroutine(MoveToPlayer());
+        StartCoroutine("MoveToPlayer");
     }
-
     void StopWalking()
-    {
-        isWalking = false;
+    {   
         agent.isStopped = true;
         animator.SetBool(walkingID, false);
-        StopCoroutine(MoveToPlayer());
+        StopCoroutine("MoveToPlayer");
     }
-
-
     void StartAttacking()
     {
         isAttacking = true;
         animator.SetBool(inRangeID, true);
     }
-
     void StopAttacking()
     {
         isAttacking = false;
         animator.SetBool(inRangeID, false);
     }
-
     IEnumerator MoveToPlayer()
     {
         while (true)
@@ -115,7 +79,6 @@ public class EnemyNavController : MonoBehaviour
             agent.SetDestination(player.transform.position);
             yield return new WaitForSeconds(0.3f);
         }
-
     }
     void FacePlayer()
     {
@@ -124,29 +87,67 @@ public class EnemyNavController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, lookrotation, Time.deltaTime * rotationSpeed);
     }
 
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, reachableRange);
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, exposedRange);
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, alertedRange);
-
-
-    }
-
-    public void IsDead()
-    {
-        isDead = true;
-        animator.SetBool(deadID, true);
-        StopWalking();
-        StopAttacking();
-    }
-
     void DisableMovement()
     {
-        animator.enabled = false;
+        StopWalking();
+    }
+
+    public void OnKilled(Weapon weapon, Vector3 hitpoint, Ray ray)
+    {
         agent.enabled = false;
+        animator.enabled = false;
+        StopCoroutine("MoveToPlayer");
+
+        foreach(Rigidbody rb in ragdoll)
+        {
+            rb.isKinematic = false;
+            Debug.DrawLine(ray.origin, hitpoint, Color.red, 3f);
+            rb.AddForce(ray.direction.normalized * weapon.Force, ForceMode.Impulse);
+        }
+
+        Destroy(gameObject, deathTime);
+    }
+
+    public void OnAlertTriggerEnter()
+    {
+        if (agent.enabled)
+        {
+            StartWalking();
+        }
+    }
+    public void OnAlertTriggerExit()
+    {
+        if (agent.enabled)
+            StopWalking();
+    }
+    public void OnAttackTriggerEnter()
+    {
+        if (agent.enabled)
+        {
+            StopWalking();
+            StartAttacking();
+            isAttacking = true;
+        }
+    }
+    public void OnAttackTriggerExit()
+    {   
+        if (agent.enabled)
+        {
+            StartWalking();
+            StopAttacking();
+            isAttacking = false;
+        }
+    }
+    public void Stagger()
+    {
+        agent.speed = 0;
+        animator.SetBool(staggerID, true);
+        Invoke("StopStagger", 0.3f);
+
+    }
+
+    void StopStagger()
+    {
+        animator.SetBool(staggerID, false);
     }
 }

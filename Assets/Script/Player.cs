@@ -18,8 +18,10 @@ public class Player : MonoBehaviour {
     public Camera cam;
     public CharacterController characterCtrl;
     public GameObject bulletMark;
-    private float yaw = 0;
-    private float pitch = 0;
+
+    LayerMask noIgnoreRaycastLayer =  ~(1 << 2);
+    float yaw = 0;
+    float pitch = 0;
 
     void Awake()
     {
@@ -85,14 +87,15 @@ public class Player : MonoBehaviour {
     private void Fire()
     {
         RaycastHit hit;
-        if (Physics.Raycast(cam.transform.position, cam.transform.TransformDirection(Vector3.forward), out hit, Mathf.Infinity, Physics.AllLayers, QueryTriggerInteraction.Collide))
+        Ray ray = new Ray(cam.transform.position, cam.transform.TransformDirection(Vector3.forward));
+        if (Physics.Raycast(ray, out hit, Mathf.Infinity, noIgnoreRaycastLayer, QueryTriggerInteraction.Collide))
         {
             string rootTag = hit.transform.root.tag;
             
             if (rootTag == "Enemy")
             {
                 bool headshot = hit.transform.name.ToLower().Contains("head");
-                hit.transform.root.transform.GetComponent<EnemyController>().TakeDamage(weapon.BaseDamage, headshot);
+                hit.transform.root.transform.GetComponent<EnemyController>().TakeDamage(weapon, headshot, hit.point, ray);
             }
             else
             {
@@ -101,8 +104,6 @@ public class Player : MonoBehaviour {
                 Destroy(mark, 0.5f);
             }
 
-            Debug.Log(hit.transform.name);
-            Debug.Log(hit.transform.tag);
         }
     }
 }

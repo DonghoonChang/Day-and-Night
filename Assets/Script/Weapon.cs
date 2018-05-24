@@ -4,17 +4,27 @@ using UnityEngine;
 
 public class Weapon : MonoBehaviour {
 
-    [SerializeField] [Range(1, 150)] private int m_Damage = 15;
+    [SerializeField] [Range(1, 150)] private int _Damage;
+    [SerializeField] [Range(1, 150)] private int _Force;
 
     public int BaseDamage
     {
         get
         {
-            return m_Damage;
+            return _Damage;
         }
     }
-	// Use this for initialization
-	void Start () {
+
+    public int Force
+    {
+        get
+        {
+            return _Force;
+        }
+    }
+
+    // Use this for initialization
+    void Start () {
 		
 	}
 	
