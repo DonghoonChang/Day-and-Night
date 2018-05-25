@@ -2,7 +2,6 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-
 public class EnemyNavController : MonoBehaviour
 {
 
@@ -148,6 +147,7 @@ public class EnemyNavController : MonoBehaviour
 
     void StopStagger()
     {
+        agent.speed = walkingSpeed;
         animator.SetBool(staggerID, false);
     }
 }

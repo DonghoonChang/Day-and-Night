@@ -13,12 +13,16 @@ public class EnemyController : MonoBehaviour
     public GameObject player;
     EnemyNavController navController;
 
-    int staggerDamage;
+    int healthPrev;
+    int staggerPointH;
+    int staggerPointL;
 
     void Awake()
     {
         navController = GetComponent<EnemyNavController>();
-        staggerDamage = health * 1 / 3;
+        healthPrev = health;
+        staggerPointH = health * 2 / 3;
+        staggerPointL = health * 1 / 3;
 
     }
 
@@ -30,8 +34,16 @@ public class EnemyController : MonoBehaviour
         if (health <= 0)
             navController.OnKilled(weapon, hitpoint, ray);
 
-        if (damage >= staggerDamage)
+        if (health < staggerPointL && staggerPointL < healthPrev)
+        {
             navController.Stagger();
+        }
+        else if (health < staggerPointH && staggerPointH < healthPrev)
+        {
+            navController.Stagger();
+        }
+
+        healthPrev = health;
 
 
     }
