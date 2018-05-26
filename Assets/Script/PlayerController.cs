@@ -2,33 +2,32 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[System.Serializable]
 [RequireComponent(typeof(CharacterController))]
-public class Player : MonoBehaviour {
+public class PlayerController : MonoBehaviour {
 
-    [SerializeField] [Range(0, 200)] private int m_Health = 200;
-    [SerializeField] [Range(1f, 10f)] private float m_SpeedWalk = 5f;
-    [SerializeField] [Range(5f, 20f)] private float m_SpeedRun = 10f;
-    [SerializeField] [Range(5f, 20f)] private float m_SensitivityX = 5f;
-    [SerializeField] [Range(5f, 20f)] private float m_SensitivityY = 5f;
-    [SerializeField] [Range(20f, 5f)] private float m_PushForce = 30f;
-    [SerializeField] private float m_gravityMultiplier = 2f;
-    [SerializeField] bool m_isWalking = true;
-
-    public GameObject bulletMark;
+    /*
+     * Controls the basic game logic - stats, inventory
+     */
+    [SerializeField] [Range(0, 200)] private int health = 200;
 
     Camera cam;
-    Weapon weapon;
+    PlayerWeapon weapon;
+    public GameObject bulletMark;
     CharacterController characterCtrl;
     LayerMask noIgnoreRaycastLayer =  ~(1 << 2);
 
     float yaw = 0;
     float pitch = 0;
 
+    public int Damage
+    {
+        get { return weapon.BaseDamage; }
+    }
+
     void Awake()
     {
         cam = Camera.main;
-        weapon = GetComponentInChildren<Weapon>();
+        weapon = GetComponentInChildren<PlayerWeapon>();
         characterCtrl = GetComponent<CharacterController>();
     }
     // Use this for initialization
@@ -36,77 +35,13 @@ public class Player : MonoBehaviour {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = !(Cursor.lockState == CursorLockMode.Locked);
     }
-	
-	// Update is called once per frame
-	void Update () {
-		
-	}
 
-    private void FixedUpdate()
+    void Update()
     {
-        yaw += Input.GetAxis("Mouse Y") * m_SensitivityY;
-        pitch += Input.GetAxis("Mouse X") * m_SensitivityX;
-        yaw = Mathf.Clamp(yaw, -90f, 90f);
-        pitch %= 360f;
-
-        transform.eulerAngles = new Vector3(0, pitch, 0);
-        cam.transform.localEulerAngles = new Vector3(-yaw, 0, 0);
-
-        float speed_multi = m_isWalking ? m_SpeedWalk : m_SpeedRun;
-        Vector3 move_dir = (transform.forward * Input.GetAxis("Vertical") + transform.right * Input.GetAxis("Horizontal")).normalized;
-
-        RaycastHit hit;
-        if (Physics.SphereCast(transform.position, characterCtrl.radius, Vector3.down,
-            out hit, characterCtrl.height/2f, Physics.AllLayers, QueryTriggerInteraction.Ignore))
-        {
-            Debug.DrawLine(transform.position, hit.point, Color.green);
-            Debug.DrawRay(transform.position - Vector3.down * characterCtrl.height/2f, Vector3.ProjectOnPlane(move_dir, hit.normal), Color.yellow);
-        }
-
-        move_dir = Vector3.ProjectOnPlane(move_dir, hit.normal).normalized * speed_multi * Time.deltaTime;
-
-        if (!characterCtrl.isGrounded)
-        {
-            move_dir += Physics.gravity * m_gravityMultiplier;
-        }
-
-        characterCtrl.Move(move_dir);
-
-        if (Input.GetButtonDown("Fire1"))
-        {
-            Fire();
-        }
-    }
-
-    private void OnControllerColliderHit(ControllerColliderHit hit)
-    {   
-        if (hit.rigidbody != null)
-        {
-            Rigidbody rb = hit.rigidbody;
-            rb.AddForce((hit.transform.position - transform.position).normalized * m_PushForce, ForceMode.Force);
-        }
 
     }
-    private void Fire()
-    {
-        RaycastHit hit;
-        Ray ray = new Ray(cam.transform.position, cam.transform.TransformDirection(Vector3.forward));
-        if (Physics.Raycast(ray, out hit, Mathf.Infinity, noIgnoreRaycastLayer, QueryTriggerInteraction.Collide))
-        {
-            string rootTag = hit.transform.root.tag;
-            
-            if (rootTag == "Enemy")
-            {
-                bool headshot = hit.transform.name.ToLower().Contains("head");
-                hit.transform.root.transform.GetComponent<EnemyController>().TakeDamage(weapon, headshot, hit.point, ray);
-            }
-            else
-            {
-                Debug.DrawRay(cam.transform.position, cam.transform.TransformDirection(Vector3.forward) * hit.distance, Color.red, 0.5f);
-                GameObject mark = Instantiate(bulletMark, hit.point, Quaternion.LookRotation(hit.normal));
-                Destroy(mark, 0.5f);
-            }
 
-        }
-    }
+
+
+
 }

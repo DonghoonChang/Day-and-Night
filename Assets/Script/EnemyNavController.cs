@@ -4,13 +4,27 @@ using UnityEngine.AI;
 
 public class EnemyNavController : MonoBehaviour
 {
+    /* Numbers of different substate motions for random picking*/
+    static int IDLEMOTIONS = 4;
+    static int ATTACKMOTIONS = 6;
 
-    /*
-     * Controlls Enemy Navigation and Animation 
-     */
+    enum Walking : int
+    {
+        STOP = 0, WALKING, CHASING
+    }
+
+    static string Idle1 = "Zombie Idle Eyes into Sky";
+    static string Idle2 = "Zombie Idle Eyes on Floor";
+    static string Idle3 = "Zombie Idle Leg Shuffle1";
+    static string Idle4 = "Zombie Idle Leg Shuffle2";
+    static string[] Idles = new string[] { Idle1, Idle2, Idle3, Idle4};
+
+
+    /* Controlls Enemy Navigation and Animation */
     [SerializeField] [Range(0f, 20f)] float rotationSpeed; //The range the enemy actually knows where the player is
     [SerializeField] [Range(0f, 5f)] float stoppingDistance;
     [SerializeField] [Range(0f, 2f)] float walkingSpeed;
+    [SerializeField] [Range(0f, 2f)] float chasingSpeed;
 
     /*
      * Components 
@@ -20,9 +34,10 @@ public class EnemyNavController : MonoBehaviour
     Animator animator;
     NavMeshAgent agent;
 
-    int walkingID = Animator.StringToHash("Walking");
-    int inRangeID = Animator.StringToHash("InRange");
-    int staggerID = Animator.StringToHash("Staggered");
+    int IdleID = Animator.StringToHash("IdleMoNo");
+    int AttackID = Animator.StringToHash("AttackMoNo");
+    int WalkingID = Animator.StringToHash("WalkingMoNo");
+    int deadID = Animator.StringToHash("Dead");
 
     bool isAttacking = false;
     float deathTime = 10f;
@@ -41,6 +56,8 @@ public class EnemyNavController : MonoBehaviour
         {
             rb.isKinematic = true;
         }
+
+        PickIdle();
     }
 
     void Update()
@@ -52,24 +69,24 @@ public class EnemyNavController : MonoBehaviour
     void StartWalking()
     {
         agent.isStopped = false;
-        animator.SetBool(walkingID, true);
+        animator.SetInteger(WalkingID, (int) Walking.WALKING);
         StartCoroutine("MoveToPlayer");
     }
     void StopWalking()
     {   
         agent.isStopped = true;
-        animator.SetBool(walkingID, false);
+        animator.SetInteger(WalkingID, (int) Walking.STOP);
         StopCoroutine("MoveToPlayer");
     }
     void StartAttacking()
     {
         isAttacking = true;
-        animator.SetBool(inRangeID, true);
+        PickAttack();
     }
     void StopAttacking()
     {
         isAttacking = false;
-        animator.SetBool(inRangeID, false);
+        animator.SetInteger(AttackID, 0);
     }
     IEnumerator MoveToPlayer()
     {
@@ -86,13 +103,9 @@ public class EnemyNavController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, lookrotation, Time.deltaTime * rotationSpeed);
     }
 
-    void DisableMovement()
+    public void OnKilled(int concussion, Vector3 hitpoint, Ray ray)
     {
-        StopWalking();
-    }
-
-    public void OnKilled(Weapon weapon, Vector3 hitpoint, Ray ray)
-    {
+        animator.SetBool(deadID, true);
         agent.enabled = false;
         animator.enabled = false;
         StopCoroutine("MoveToPlayer");
@@ -101,7 +114,7 @@ public class EnemyNavController : MonoBehaviour
         {
             rb.isKinematic = false;
             Debug.DrawLine(ray.origin, hitpoint, Color.red, 3f);
-            rb.AddForce(ray.direction.normalized * weapon.Force, ForceMode.Impulse);
+            rb.AddForce(ray.direction.normalized * concussion, ForceMode.Impulse);
         }
 
         Destroy(gameObject, deathTime);
@@ -139,15 +152,42 @@ public class EnemyNavController : MonoBehaviour
     }
     public void Stagger()
     {
-        agent.speed = 0;
-        animator.SetBool(staggerID, true);
-        Invoke("StopStagger", 0.3f);
 
     }
 
+
+    /*
+     * Animation Event 
+     */
     void StopStagger()
     {
-        agent.speed = walkingSpeed;
-        animator.SetBool(staggerID, false);
+
+    }
+
+    void PickIdle()
+    {
+        int pick = Random.Range(1, IDLEMOTIONS);
+
+        if (1 > pick || pick > IDLEMOTIONS)
+        {
+            pick = 1;
+
+        }
+
+        animator.SetInteger(IdleID, pick);
+        animator.Play(Idles[pick - 1]);
+    }
+
+    /* ANIMATION EVENT: every attack animation triggers this event in the transition for the next consecutive attack*/
+    void PickAttack()
+    {
+        int pick = Random.Range(1, ATTACKMOTIONS);
+
+        if (1 > pick || pick > ATTACKMOTIONS)
+        {
+            pick = 1;
+        }
+
+        animator.SetInteger(AttackID, pick);
     }
 }

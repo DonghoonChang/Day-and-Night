@@ -26,21 +26,21 @@ public class EnemyController : MonoBehaviour
 
     }
 
-    public void TakeDamage(Weapon weapon, bool headshot, Vector3 hitpoint, Ray ray)
+    public void TakeDamage(int baseDamage, int concussion, bool headshot, Vector3 hitpoint, Ray ray)
     {
-        int damage = headshot ? Mathf.FloorToInt(weapon.BaseDamage * headshotMultiplier) : weapon.BaseDamage;
+        int damage = headshot ? Mathf.FloorToInt(baseDamage * headshotMultiplier) : baseDamage;
         health -= damage;
 
         if (health <= 0)
-            navController.OnKilled(weapon, hitpoint, ray);
+            navController.OnKilled(concussion, hitpoint, ray);
 
         if (health < staggerPointL && staggerPointL < healthPrev)
         {
-            navController.Stagger();
+            //navController.Stagger();
         }
         else if (health < staggerPointH && staggerPointH < healthPrev)
         {
-            navController.Stagger();
+            //navController.Stagger();
         }
 
         healthPrev = health;
