@@ -29,11 +29,12 @@ public class EnemyNavController : MonoBehaviour
     /*
      * Components 
      */
-    public GameObject player;
+    GameObject player;
     Rigidbody[] ragdoll;
     Animator animator;
     NavMeshAgent agent;
 
+    int idleMotionNumber = 2;
     int IdleID = Animator.StringToHash("IdleMoNo");
     int AttackID = Animator.StringToHash("AttackMoNo");
     int WalkingID = Animator.StringToHash("WalkingMoNo");
@@ -45,6 +46,7 @@ public class EnemyNavController : MonoBehaviour
 
     void Awake()
     {
+        player = GameObject.Find("Player");
         animator = GetComponent<Animator>();
         agent = GetComponent<NavMeshAgent>();
         ragdoll = GetComponentsInChildren<Rigidbody>();
@@ -53,19 +55,19 @@ public class EnemyNavController : MonoBehaviour
         agent.speed = walkingSpeed;
 
         foreach(Rigidbody rb in ragdoll)
-        {
             rb.isKinematic = true;
-        }
 
-        PickIdle();
+        animator.SetInteger(IdleID, idleMotionNumber);
+        animator.Play(Idles[idleMotionNumber - 1]);
     }
-
     void Update()
     {
         if (isAttacking)
             FacePlayer();
     }
 
+    /* Movement Related */
+    #region Movement
     void StartWalking()
     {
         agent.isStopped = false;
@@ -102,24 +104,10 @@ public class EnemyNavController : MonoBehaviour
         Quaternion lookrotation = Quaternion.LookRotation(new Vector3(N.x, 0, N.z));
         transform.rotation = Quaternion.Slerp(transform.rotation, lookrotation, Time.deltaTime * rotationSpeed);
     }
+#endregion
 
-    public void OnKilled(int concussion, Vector3 hitpoint, Ray ray)
-    {
-        animator.SetBool(deadID, true);
-        agent.enabled = false;
-        animator.enabled = false;
-        StopCoroutine("MoveToPlayer");
-
-        foreach(Rigidbody rb in ragdoll)
-        {
-            rb.isKinematic = false;
-            Debug.DrawLine(ray.origin, hitpoint, Color.red, 3f);
-            rb.AddForce(ray.direction.normalized * concussion, ForceMode.Impulse);
-        }
-
-        Destroy(gameObject, deathTime);
-    }
-
+    /* Aggresiveness Related */
+    #region Agreesiveness
     public void OnAlertTriggerEnter()
     {
         if (agent.enabled)
@@ -154,31 +142,38 @@ public class EnemyNavController : MonoBehaviour
     {
 
     }
+#endregion
 
+    /* Death Related */
+    public void OnKilled(int concussion, Vector3 hitpoint, Ray ray)
+    {
+        animator.SetBool(deadID, true);
+        agent.enabled = false;
+        animator.enabled = false;
+        StopCoroutine("MoveToPlayer");
 
-    /*
-     * Animation Event 
-     */
+        foreach (Rigidbody rb in ragdoll)
+        {
+            rb.isKinematic = false;
+            Debug.DrawLine(ray.origin, hitpoint, Color.red, 3f);
+            rb.AddForce(ray.direction.normalized * concussion, ForceMode.Impulse);
+        }
+
+        Destroy(gameObject, deathTime);
+    }
+
+    void PlayDeathAnimation()
+    {
+
+    }
+
+    /* Animation Events */
     void StopStagger()
     {
 
     }
 
-    void PickIdle()
-    {
-        int pick = Random.Range(1, IDLEMOTIONS);
-
-        if (1 > pick || pick > IDLEMOTIONS)
-        {
-            pick = 1;
-
-        }
-
-        animator.SetInteger(IdleID, pick);
-        animator.Play(Idles[pick - 1]);
-    }
-
-    /* ANIMATION EVENT: every attack animation triggers this event in the transition for the next consecutive attack*/
+    /* Every attack animation triggers this event in the transition for the next consecutive attack*/
     void PickAttack()
     {
         int pick = Random.Range(1, ATTACKMOTIONS);
@@ -188,6 +183,7 @@ public class EnemyNavController : MonoBehaviour
             pick = 1;
         }
 
-        animator.SetInteger(AttackID, pick);
+        if (isAttacking)
+            animator.SetInteger(AttackID, pick);
     }
 }

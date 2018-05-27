@@ -10,7 +10,7 @@ public class EnemyController : MonoBehaviour
     [SerializeField] float headshotMultiplier = 3f;
     [SerializeField] int exp = 15;
 
-    public GameObject player;
+    GameObject player;
     EnemyNavController navController;
 
     int healthPrev;
@@ -19,6 +19,7 @@ public class EnemyController : MonoBehaviour
 
     void Awake()
     {
+        player = GameObject.Find("Player");
         navController = GetComponent<EnemyNavController>();
         healthPrev = health;
         staggerPointH = health * 2 / 3;
@@ -45,6 +46,6 @@ public class EnemyController : MonoBehaviour
 
         healthPrev = health;
 
-
+        // Blood Splatter
     }
 }

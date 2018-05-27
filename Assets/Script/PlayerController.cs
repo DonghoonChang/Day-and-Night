@@ -30,6 +30,7 @@ public class PlayerController : MonoBehaviour {
         weapon = GetComponentInChildren<PlayerWeapon>();
         characterCtrl = GetComponent<CharacterController>();
     }
+
     // Use this for initialization
     void Start () {
         Cursor.lockState = CursorLockMode.Locked;

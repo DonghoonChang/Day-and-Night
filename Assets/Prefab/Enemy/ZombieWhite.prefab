@@ -2830,7 +2830,6 @@ MonoBehaviour:
   health: 150
   headshotMultiplier: 3
   exp: 15
-  player: {fileID: 0}
 --- !u!114 &114801269047915874
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2844,8 +2843,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rotationSpeed: 5
   stoppingDistance: 2
-  walkingSpeed: 0.8
-  player: {fileID: 0}
+  walkingSpeed: 0.5
+  chasingSpeed: 0.8
 --- !u!114 &114920476836220120
 MonoBehaviour:
   m_ObjectHideFlags: 1

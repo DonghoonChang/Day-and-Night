@@ -66734,7 +66734,7 @@ AnimationClip:
     m_LoopBlend: 1
     m_LoopBlendOrientation: 1
     m_LoopBlendPositionY: 1
-    m_LoopBlendPositionXZ: 1
+    m_LoopBlendPositionXZ: 0
     m_KeepOriginalOrientation: 0
     m_KeepOriginalPositionY: 1
     m_KeepOriginalPositionXZ: 0
@@ -132531,7 +132531,7 @@ AnimationClip:
   m_HasMotionFloatCurves: 0
   m_GenerateMotionCurves: 0
   m_Events:
-  - time: 0.43333334
+  - time: 5.233333
     functionName: PickAttack
     data: 
     objectReferenceParameter: {fileID: 0}
