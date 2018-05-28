@@ -22,7 +22,7 @@ public class PlayerWeapon : MonoBehaviour {
         }
     }
 
-    public float FireRate
+    public float FireRatePerSec
     {
         get
         {

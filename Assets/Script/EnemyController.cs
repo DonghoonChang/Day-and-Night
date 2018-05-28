@@ -13,38 +13,31 @@ public class EnemyController : MonoBehaviour
     GameObject player;
     EnemyNavController navController;
 
-    int healthPrev;
-    int staggerPointH;
-    int staggerPointL;
+    int staggerTriggerDamage;
 
     void Awake()
     {
         player = GameObject.Find("Player");
         navController = GetComponent<EnemyNavController>();
-        healthPrev = health;
-        staggerPointH = health * 2 / 3;
-        staggerPointL = health * 1 / 3;
-
+        staggerTriggerDamage = health / 3;
     }
 
-    public void TakeDamage(int baseDamage, int concussion, bool headshot, Vector3 hitpoint, Ray ray)
+    public void OnHit(int baseDamage, int concussion, string partName, Vector3 hitpoint, Ray ray)
     {
-        int damage = headshot ? Mathf.FloorToInt(baseDamage * headshotMultiplier) : baseDamage;
+        int damage = partName.ToLower().Contains("head") ? Mathf.FloorToInt(baseDamage * headshotMultiplier) : baseDamage;
+
         health -= damage;
 
+        /* Play Death Animation on Death */
         if (health <= 0)
-            navController.OnKilled(concussion, hitpoint, ray);
+            navController.OnKilled(partName, concussion, hitpoint, ray);
 
-        if (health < staggerPointL && staggerPointL < healthPrev)
-        {
-            //navController.Stagger();
-        }
-        else if (health < staggerPointH && staggerPointH < healthPrev)
-        {
-            //navController.Stagger();
-        }
+        else if (damage >= staggerTriggerDamage)
+            navController.StaggerMajor();
 
-        healthPrev = health;
+        else
+            navController.StaggerMinor();
+
 
         // Blood Splatter
     }

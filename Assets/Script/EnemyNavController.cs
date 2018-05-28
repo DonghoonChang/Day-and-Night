@@ -38,9 +38,10 @@ public class EnemyNavController : MonoBehaviour
     int IdleID = Animator.StringToHash("IdleMoNo");
     int AttackID = Animator.StringToHash("AttackMoNo");
     int WalkingID = Animator.StringToHash("WalkingMoNo");
-    int deadID = Animator.StringToHash("Dead");
+    int staggerID = Animator.StringToHash("StaggerMoNo");
 
     bool isAttacking = false;
+    bool inMajorStagger = false;
     float deathTime = 10f;
 
 
@@ -106,8 +107,8 @@ public class EnemyNavController : MonoBehaviour
     }
 #endregion
 
-    /* Aggresiveness Related */
-    #region Agreesiveness
+    /* Enemy Pattern Related */
+    #region Patterns
     public void OnAlertTriggerEnter()
     {
         if (agent.enabled)
@@ -138,16 +139,37 @@ public class EnemyNavController : MonoBehaviour
             isAttacking = false;
         }
     }
-    public void Stagger()
-    {
 
+    public void StaggerMinor()
+    {
+        /* Major Stagger Overrides Minor */
+        if (!inMajorStagger)
+        {
+            animator.SetInteger(staggerID, 1);
+        }
     }
-#endregion
+
+    public void StaggerMajor()
+    {
+        inMajorStagger = true;
+        animator.SetInteger(staggerID, 2);
+    }
+
+    public void ResetStaggerMinor()
+    {
+        animator.SetInteger(staggerID, 0);
+    }
+
+    public void ResetStaggerMajor()
+    {
+        inMajorStagger = false;
+        animator.SetInteger(staggerID, 0);
+    }
+    #endregion
 
     /* Death Related */
-    public void OnKilled(int concussion, Vector3 hitpoint, Ray ray)
+    public void OnKilled(string partName, int concussion, Vector3 hitpoint, Ray ray)
     {
-        animator.SetBool(deadID, true);
         agent.enabled = false;
         animator.enabled = false;
         StopCoroutine("MoveToPlayer");
@@ -155,8 +177,9 @@ public class EnemyNavController : MonoBehaviour
         foreach (Rigidbody rb in ragdoll)
         {
             rb.isKinematic = false;
-            Debug.DrawLine(ray.origin, hitpoint, Color.red, 3f);
-            rb.AddForce(ray.direction.normalized * concussion, ForceMode.Impulse);
+
+            if (rb.name == partName)
+                rb.AddForce(ray.direction.normalized * concussion, ForceMode.Impulse);
         }
 
         Destroy(gameObject, deathTime);
@@ -168,15 +191,11 @@ public class EnemyNavController : MonoBehaviour
     }
 
     /* Animation Events */
-    void StopStagger()
-    {
-
-    }
 
     /* Every attack animation triggers this event in the transition for the next consecutive attack*/
     void PickAttack()
     {
-        int pick = Random.Range(1, ATTACKMOTIONS);
+        int pick = Random.Range(1, ATTACKMOTIONS + 1);
 
         if (1 > pick || pick > ATTACKMOTIONS)
         {

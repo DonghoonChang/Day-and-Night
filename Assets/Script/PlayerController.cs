@@ -13,22 +13,19 @@ public class PlayerController : MonoBehaviour {
     Camera cam;
     PlayerWeapon weapon;
     public GameObject bulletMark;
-    CharacterController characterCtrl;
-    LayerMask noIgnoreRaycastLayer =  ~(1 << 2);
 
     float yaw = 0;
     float pitch = 0;
 
     public int Damage
     {
-        get { return weapon.BaseDamage; }
+        get { return weapon.BaseDamage * GetDamageMultiplier(); }
     }
 
     void Awake()
     {
         cam = Camera.main;
         weapon = GetComponentInChildren<PlayerWeapon>();
-        characterCtrl = GetComponent<CharacterController>();
     }
 
     // Use this for initialization
@@ -37,11 +34,10 @@ public class PlayerController : MonoBehaviour {
         Cursor.visible = !(Cursor.lockState == CursorLockMode.Locked);
     }
 
-    void Update()
+    int GetDamageMultiplier()
     {
-
+        return 1;
     }
-
 
 
 
