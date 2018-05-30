@@ -1,144 +1,124 @@
 ﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEditor;
+
 
 public class EnemyNavController : MonoBehaviour
 {
-    /* Numbers of different substate motions for random picking*/
-    static int IDLEMOTIONS = 4;
+    /* Takes Care of Animation and Navigation */
+
+
+    /* Animations*/
     static int ATTACKMOTIONS = 6;
-
-    enum Walking : int
-    {
-        STOP = 0, WALKING, CHASING
-    }
-
-    static string Idle1 = "Zombie Idle Eyes into Sky";
-    static string Idle2 = "Zombie Idle Eyes on Floor";
-    static string Idle3 = "Zombie Idle Leg Shuffle1";
-    static string Idle4 = "Zombie Idle Leg Shuffle2";
-    static string[] Idles = new string[] { Idle1, Idle2, Idle3, Idle4};
-
+    static int idleID = Animator.StringToHash("Zombie Idle");
+    static int RotationID = Animator.StringToHash("Rotation");
+    static int AttackID = Animator.StringToHash("AttackMoNo");
+    static int WalkingID = Animator.StringToHash("WalkingMoNo");
+    static int staggerID = Animator.StringToHash("StaggerMoNo");
 
     /* Controlls Enemy Navigation and Animation */
-    [SerializeField] [Range(0f, 20f)] float rotationSpeed; //The range the enemy actually knows where the player is
-    [SerializeField] [Range(0f, 5f)] float stoppingDistance;
-    [SerializeField] [Range(0f, 2f)] float walkingSpeed;
-    [SerializeField] [Range(0f, 2f)] float chasingSpeed;
+    [SerializeField] [Range(0f, 2f)] float speedChase;
+    [SerializeField] [Range(0f, 2f)] float speedFollow;
+    [SerializeField] [Range(0f, 5f)] float rotSpeedAttack;
+    [SerializeField] [Range(0f, 5f)] float rotSpeedChase;
+    [SerializeField] [Range(0f, 5f)] float rotSpeedFollow;
+    [SerializeField] [Range(0f, 2f)] float rotSpeedWatch;
 
-    /*
-     * Components 
-     */
+
+    /* Components */
+    public GameManagement gameManager;
     GameObject player;
     Rigidbody[] ragdoll;
     Animator animator;
     NavMeshAgent agent;
 
-    int idleMotionNumber = 2;
-    int IdleID = Animator.StringToHash("IdleMoNo");
-    int AttackID = Animator.StringToHash("AttackMoNo");
-    int WalkingID = Animator.StringToHash("WalkingMoNo");
-    int staggerID = Animator.StringToHash("StaggerMoNo");
-
+    /* Animation States */
+    bool isWatching = false;
+    bool isFollowing = false;
+    bool isChasing = false;
     bool isAttacking = false;
     bool inMajorStagger = false;
     float deathTime = 10f;
 
+    /* AI Triggers */
+    public float attackTriggerRadious = 1f;
+    public float followTriggerRadious = 2.5f;
+    public float watchTriggerRadious = 6f;
+    public float fovRadius = 6f;
+    public float fovRadiusLosePlayer = 6f;
+
+    SphereCollider attackTrigger;
+    SphereCollider followTrigger;
+    SphereCollider watchTrigger;
+
+    /* Extra */
+    public int thisIdleMoNo = 1;
+    Quaternion targetLookDir = Quaternion.identity;
+    LayerMask onlyPlayerLayer = (1 << 8);
+
+    /* Coroutines */
+    IEnumerator WatchPlayerCo;
+    IEnumerator FollowPlayerCo;
+    IEnumerator ChasePlayerCo;
+    IEnumerator RotateToAttackPlayerCo;
+
 
     void Awake()
     {
-        player = GameObject.Find("Player");
-        animator = GetComponent<Animator>();
-        agent = GetComponent<NavMeshAgent>();
-        ragdoll = GetComponentsInChildren<Rigidbody>();
-        
-        agent.stoppingDistance = stoppingDistance;
-        agent.speed = walkingSpeed;
 
-        foreach(Rigidbody rb in ragdoll)
+        WatchPlayerCo = WatchPlayer();
+        FollowPlayerCo = FollowPlayer();
+        ChasePlayerCo = ChasePlayer();
+        RotateToAttackPlayerCo = RotateToPlayer();
+
+        player = gameManager.player;
+        animator = GetComponent<Animator>();
+
+        agent = GetComponent<NavMeshAgent>();
+        agent.speed = speedFollow;
+
+        ragdoll = GetComponentsInChildren<Rigidbody>();
+        foreach (Rigidbody rb in ragdoll)
             rb.isKinematic = true;
 
-        animator.SetInteger(IdleID, idleMotionNumber);
-        animator.Play(Idles[idleMotionNumber - 1]);
-    }
-    void Update()
-    {
-        if (isAttacking)
-            FacePlayer();
+        SphereCollider[] colliders = GetComponentsInChildren<SphereCollider>();
+        foreach(SphereCollider col in colliders)
+        {
+            if (col.name == "Attack Trigger")
+                attackTrigger = col;
+
+            else if (col.name == "Follow Trigger")
+                followTrigger = col;
+
+            else if (col.name == "Watch Trigger")
+                watchTrigger = col;
+                
+        }
+
+        attackTrigger.radius = attackTriggerRadious / transform.localScale.x;
+        followTrigger.radius = followTriggerRadious / transform.localScale.x;
+        watchTrigger.radius = watchTriggerRadious / transform.localScale.x;
+
     }
 
-    /* Movement Related */
-    #region Movement
-    void StartWalking()
+    private void Update()
     {
-        agent.isStopped = false;
-        animator.SetInteger(WalkingID, (int) Walking.WALKING);
-        StartCoroutine("MoveToPlayer");
-    }
-    void StopWalking()
-    {   
-        agent.isStopped = true;
-        animator.SetInteger(WalkingID, (int) Walking.STOP);
-        StopCoroutine("MoveToPlayer");
-    }
-    void StartAttacking()
-    {
-        isAttacking = true;
-        PickAttack();
-    }
-    void StopAttacking()
-    {
-        isAttacking = false;
-        animator.SetInteger(AttackID, 0);
-    }
-    IEnumerator MoveToPlayer()
-    {
-        while (true)
+        if (!isChasing)
         {
-            agent.SetDestination(player.transform.position);
-            yield return new WaitForSeconds(0.3f);
+            if (CanSeePlayer(fovRadius))
+                StartChasingPlayer();
         }
-    }
-    void FacePlayer()
-    {
-        Vector3 N = (player.transform.position - transform.position).normalized;
-        Quaternion lookrotation = Quaternion.LookRotation(new Vector3(N.x, 0, N.z));
-        transform.rotation = Quaternion.Slerp(transform.rotation, lookrotation, Time.deltaTime * rotationSpeed);
-    }
-#endregion
 
-    /* Enemy Pattern Related */
-    #region Patterns
-    public void OnAlertTriggerEnter()
-    {
-        if (agent.enabled)
+        else
         {
-            StartWalking();
+            if (!CanSeePlayer(fovRadiusLosePlayer))
+                StopChasingPlayer();
         }
     }
-    public void OnAlertTriggerExit()
-    {
-        if (agent.enabled)
-            StopWalking();
-    }
-    public void OnAttackTriggerEnter()
-    {
-        if (agent.enabled)
-        {
-            StopWalking();
-            StartAttacking();
-            isAttacking = true;
-        }
-    }
-    public void OnAttackTriggerExit()
-    {   
-        if (agent.enabled)
-        {
-            StartWalking();
-            StopAttacking();
-            isAttacking = false;
-        }
-    }
+
+    /* Stagger Animation */
+    #region Stagger & Death Animation
 
     public void StaggerMinor()
     {
@@ -165,9 +145,8 @@ public class EnemyNavController : MonoBehaviour
         inMajorStagger = false;
         animator.SetInteger(staggerID, 0);
     }
-    #endregion
 
-    /* Death Related */
+    /* Death Animation */
     public void OnKilled(string partName, int concussion, Vector3 hitpoint, Ray ray)
     {
         agent.enabled = false;
@@ -189,20 +168,317 @@ public class EnemyNavController : MonoBehaviour
     {
 
     }
+    #endregion
 
-    /* Animation Events */
+    /* Enemy Alertness*/
+    #region Enemy Alertness
 
-    /* Every attack animation triggers this event in the transition for the next consecutive attack*/
+    public void StartAttackingPlayer()
+    {
+        /* Agent Disabled == Dead */
+        if (!agent.enabled)
+            return;
+
+        if (isFollowing)
+            StopFollowingPlayer();
+
+        if (isWatching)
+            StopWatchingPlayer();
+
+        if (isChasing)
+            StopChasingPlayer();
+
+        isAttacking = true;
+        StartCoroutine(RotateToAttackPlayerCo);
+        PickAttack();
+    }
+
     void PickAttack()
     {
         int pick = Random.Range(1, ATTACKMOTIONS + 1);
 
-        if (1 > pick || pick > ATTACKMOTIONS)
-        {
-            pick = 1;
-        }
-
         if (isAttacking)
             animator.SetInteger(AttackID, pick);
     }
+
+    public void StopAttackingPlayer()
+    {
+        if (!agent.enabled)
+            return;
+
+        isAttacking = false;
+        animator.SetInteger(AttackID, 0);
+        StopCoroutine(RotateToAttackPlayerCo);
+
+    }
+
+    public void StartChasingPlayer()
+    {
+        /* Agent Disabled == Dead */
+        if (!agent.enabled)
+            return;
+
+        /* Attacking Overrides Alert */
+        if (isAttacking)
+            return;
+
+        if (isFollowing)
+            StopFollowingPlayer();
+
+        if (isWatching)
+            StopWatchingPlayer();
+
+        isChasing = true;
+        agent.isStopped = false;
+        agent.speed = speedChase;
+        StartCoroutine(ChasePlayerCo);
+        animator.SetInteger(WalkingID, 2);
+
+        Debug.Log("Start Chasing Player");
+    }
+
+    public void KeepChasingPlayer()
+    {
+        /* Agent Disabled == Dead */
+        if (!agent.enabled)
+            return;
+
+        /* Attacking Overrides Alert */
+        if (isAttacking)
+            return;
+
+        if (isFollowing)
+            StopFollowingPlayer();
+
+        if (isWatching)
+            StopWatchingPlayer();
+
+        if (!isChasing)
+            StartChasingPlayer();
+
+        Debug.Log("Keep Chasing Player");
+    }
+
+    public void StopChasingPlayer()
+    {
+        /* Agent Disabled == Dead */
+        if (!agent.enabled)
+            return;
+
+        /* Attacking Overrides Alert */
+        if (isAttacking)
+            return;
+
+        if (isFollowing)
+            StopFollowingPlayer();
+
+        if (isWatching)
+            StopWatchingPlayer();
+
+        isChasing = false;
+        agent.isStopped = true;
+        StopCoroutine(ChasePlayerCo);
+        animator.SetInteger(WalkingID, 0);
+
+        Debug.Log("Stop Chasing Player");
+    }
+
+    /* In Alert Mode, the Enemy Walks Towards the Source of Noise, or Target */
+    public void StartFollowingPlayer()
+    {
+        /* Agent Disabled == Dead */
+        if (!agent.enabled)
+            return;
+
+        /* Attacking Overrides Alert */
+        if (isAttacking || isChasing)
+            return;
+
+        if (isWatching)
+            StopWatchingPlayer();
+
+        isFollowing = true;
+        agent.isStopped = false;
+        agent.speed = speedFollow;
+        StartCoroutine(FollowPlayerCo);
+        animator.SetInteger(WalkingID, 1);
+
+        Debug.Log("Start Following Player");
+    }
+
+    public void KeepFollowingPlayer()
+    {
+        /* Agent Disabled == Dead */
+        if (!agent.enabled)
+            return;
+
+        /* Attacking Overrides Alert */
+        if (isAttacking || isChasing)
+            return;
+
+        if (isWatching)
+            StopWatchingPlayer();
+
+        if (!isFollowing)
+            StartFollowingPlayer();
+
+        Debug.Log(isAttacking);
+        Debug.Log(isChasing);
+        Debug.Log(isFollowing);
+        Debug.Log(isWatching);
+        Debug.Log(agent.destination);
+        Debug.Log(player.transform.position);
+        Debug.Log("Keep Following Player");
+    }
+
+    public void StopFollowingPlayer()
+    {
+        /* Agent Disabled == Dead */
+        if (!agent.enabled)
+            return;
+
+        /* Attacking Overrides Alert */
+        if (isAttacking || isChasing || !isFollowing)
+            return;
+
+        if (isWatching)
+            StopWatchingPlayer();
+
+        isFollowing = false;
+        agent.isStopped = true;
+        agent.SetDestination(transform.position);
+        animator.SetInteger(WalkingID, 0);
+        StopCoroutine(FollowPlayerCo);
+
+        Debug.Log("Stop Following Player");
+    }
+
+    /* In Caution Mode, the Enemy Rotates to Face the Source of the Noise, or Target */
+    public void StartWatchingPlayer()
+    {
+        /* Agent Disabled == Dead */
+        if (!agent.enabled)
+            return;
+
+        /* Attacking & Following & Chasing Overrides Caution*/
+        if (isFollowing ||isChasing || isAttacking)
+            return;
+
+        Vector3 playerDirection = player.transform.position - transform.position;
+        Quaternion lookPlayerRotation = Quaternion.LookRotation(playerDirection);
+        if (Quaternion.Angle(transform.rotation, lookPlayerRotation) >= 20f)
+        {
+            isWatching = true;
+            bool right = Vector3.Dot(transform.right, (player.transform.position - transform.position)) > 0;
+            animator.SetInteger(RotationID, right ? 1 : -1);
+            StartCoroutine(WatchPlayerCo);
+        }
+
+        Debug.Log("Start Watching Player");
+    }
+
+    public void KeepWatchingPlayer()
+    {
+        /* Agent Disabled == Dead */
+        if (!agent.enabled)
+            return;
+
+        /* Attacking & Alert Overrides Caution*/
+        if (isAttacking || isChasing || isFollowing || isWatching)
+            return;
+
+        Vector3 playerDirection = player.transform.position - transform.position;
+        Quaternion lookPlayerRotation = Quaternion.LookRotation(playerDirection);
+        if (Quaternion.Angle(transform.rotation, lookPlayerRotation) >= 20f)
+        {
+            StartWatchingPlayer();
+        }
+
+        Debug.Log("Keep Watching Player");
+    }
+
+    public void StopWatchingPlayer()
+    {
+        /* Agent Disabled == Dead */
+        if (!agent.enabled)
+            return;
+
+        /* Attacking & Alert Overrides Caution*/
+        if (isFollowing || isChasing || isAttacking)
+            return;
+
+        isWatching = false;
+        animator.SetInteger(RotationID, 0);
+        StopCoroutine(WatchPlayerCo);
+
+        Debug.Log("Stop Watching Player");
+    }
+
+    #endregion
+
+    #region Coroutines
+
+    IEnumerator WatchPlayer()
+    {
+        while (isWatching && !isFollowing && !isChasing && !isAttacking)
+        {
+            Vector3 playerDirection = player.transform.position - transform.position;
+            Quaternion lookPlayerRotation = Quaternion.LookRotation(playerDirection);
+
+            if (Quaternion.Angle(transform.rotation, lookPlayerRotation) < 10f)
+                StopWatchingPlayer();
+
+            transform.rotation = Quaternion.Lerp(transform.rotation, lookPlayerRotation, Time.deltaTime * rotSpeedWatch);
+
+            yield return 0;
+        }
+    }
+
+    IEnumerator FollowPlayer()
+    {
+        while (!isWatching && isFollowing && !isChasing && !isAttacking)
+        {
+            agent.SetDestination(player.transform.position);
+            yield return 0;
+        }
+    }
+
+    IEnumerator ChasePlayer()
+    {
+        while (!isWatching && !isFollowing && isChasing && !isAttacking)
+        {
+            agent.SetDestination(player.transform.position);
+            yield return 0;
+        }
+    }
+
+    IEnumerator RotateToPlayer()
+    {
+        while (!isWatching && !isFollowing && !isChasing && isAttacking)
+        {
+
+            Vector3 playerDirection = player.transform.position - transform.position;
+            Quaternion lookPlayerRotation = Quaternion.LookRotation(playerDirection);
+            transform.rotation = Quaternion.Slerp(transform.rotation, lookPlayerRotation, Time.deltaTime * rotSpeedAttack);
+
+            yield return 0;
+        }
+    }
+    #endregion
+
+    bool CanSeePlayer(float fovDistance)
+    {
+        /* Approximate FOV -> Left/Right 45 degrees */
+        bool front = Vector3.Dot(transform.forward, player.transform.position - transform.position) > 0.5; // 0.5 ~~ COS(45)
+
+        float distance = Vector3.Distance(transform.position, player.transform.position);
+        bool close = distance < fovDistance;
+
+        Vector3 relDir = (player.transform.position + player.transform.up) - (transform.position + transform.up);
+        Ray ray = new Ray(transform.position + transform.up, relDir);
+        bool lineOfSight = Physics.Raycast(ray, distance * 1.5f, onlyPlayerLayer);
+
+        return front && close && lineOfSight;
+    }
+
 }

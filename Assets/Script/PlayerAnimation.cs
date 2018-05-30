@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 [System.Serializable]
 public class PlayerAnimation : MonoBehaviour {
@@ -9,9 +7,9 @@ public class PlayerAnimation : MonoBehaviour {
 
     /* Control Charactor Animation, Interaction with the environment */
     [SerializeField] [Range(1f, 5f)] private float baseSpeed;
-    [SerializeField] [Range(20f, 5f)] private float pushForce;
-    [SerializeField] [Range(0.1f, 1f)] private float crouchMultiplier;
-    [SerializeField] [Range(1f, 2f)] private float sprintingMultiplier;
+    [SerializeField] [Range(2f, 10f)] private float pushForce;
+    [SerializeField] [Range(0f, 1f)] private float crouchMultiplier;
+    [SerializeField] [Range(1f, 3f)] private float sprintingMultiplier;
     [SerializeField] private float gravityMultiplier;
 
     public GameObject bulletMark;
@@ -23,18 +21,13 @@ public class PlayerAnimation : MonoBehaviour {
     /* Camera */
     Camera mainCam;
     public GameObject cameraPivot;
-    public ThirdPersonCameraControl camCtrl;
+    public ThirdPersonCameraControl mainCamController;
     public GameObject playerSpine;
-    Vector3 pivotOffset = new Vector3(0.5f, 1.8f, 0f);
-    Vector3 pivotCrouchOffset = new Vector3(0.5f, 1.2f, 0f);
-    float crouchCamSmoothness = 5f;
-
 
     /* Animation */
     Animator animator;
-    CharacterController charCtrl;
+    CharacterController charController;
     LayerMask noIgnoreRaycastLayer = ~(1 << 2);
-
 
     /* Firing Animation Related */
     bool equipPistol = false;
@@ -43,26 +36,30 @@ public class PlayerAnimation : MonoBehaviour {
     bool isReloading = false;
     bool isFiring = false;
 
+    /* Crouch Cam Control */
+    float crouchCamSmoothness = 5f;
+    Vector3 pivotOffset = new Vector3(0.5f, 1.8f, 0f);
+    Vector3 pivotCrouchOffset = new Vector3(0.5f, 1.2f, 0f);
 
-    /* Character Rotation to Mouse Movement */
+    /* Character Spine Tilt to Mouse Movement */
     float spineTiltCurrent = 0;
     float spineTiltRifle = -10f;
     float spineTiltPistol = -15f;
     float spineTiltSmoothness = 5f;
 
-
     /* Walking Status */
     Walking walkingStatus = Walking.WALKING;
 
-    int speedXID = Animator.StringToHash("SpeedX");
-    int speedYID = Animator.StringToHash("SpeedY");
-    int crouchID = Animator.StringToHash("Crouch");
-    int sprintID = Animator.StringToHash("Sprint");
-    int pistolID = Animator.StringToHash("EquipPistol");
-    int rifleID = Animator.StringToHash("EquipRifle");
-    int meleeID = Animator.StringToHash("EquipMelee");
-    int reloadID = Animator.StringToHash("Reloading");
-    int fireID = Animator.StringToHash("Firing");
+    /* Animation Hash Integers */
+    static int SpeedXID = Animator.StringToHash("SpeedX");
+    static int SpeedYID = Animator.StringToHash("SpeedY");
+    static int CrouchID = Animator.StringToHash("Crouch");
+    static int SprintID = Animator.StringToHash("Sprint");
+    static int PistolID = Animator.StringToHash("EquipPistol");
+    static int RifleID = Animator.StringToHash("EquipRifle");
+    static int MeleeID = Animator.StringToHash("EquipMelee");
+    static int ReloadID = Animator.StringToHash("Reloading");
+    static int FireID = Animator.StringToHash("Firing");
 
 
     #region Routines
@@ -75,7 +72,7 @@ public class PlayerAnimation : MonoBehaviour {
         cameraPivot.transform.localPosition = pivotOffset;
 
         animator = GetComponent<Animator>();
-        charCtrl = GetComponent<CharacterController>();
+        charController = GetComponent<CharacterController>();
 
     }
 
@@ -95,14 +92,14 @@ public class PlayerAnimation : MonoBehaviour {
             if (walkingStatus == Walking.WALKING || walkingStatus == Walking.SPRINTING)
             {
                 walkingStatus = Walking.CROUCHING;
-                animator.SetBool(crouchID, true);
-                animator.SetBool(sprintID, false);
+                animator.SetBool(CrouchID, true);
+                animator.SetBool(SprintID, false);
             }
 
             else
             {
                 walkingStatus = Walking.WALKING;
-                animator.SetBool(crouchID, false);
+                animator.SetBool(CrouchID, false);
             }
 
         }
@@ -113,17 +110,17 @@ public class PlayerAnimation : MonoBehaviour {
                 walkingStatus = Walking.SPRINTING;
                 equipPistol = false;
                 equipRifle = false;
-                animator.SetBool(crouchID, false);
-                animator.SetBool(sprintID, true);
-                animator.SetBool(rifleID, false);
-                animator.SetBool(pistolID, false);
+                animator.SetBool(CrouchID, false);
+                animator.SetBool(SprintID, true);
+                animator.SetBool(RifleID, false);
+                animator.SetBool(PistolID, false);
         }
 
         if (Input.GetButtonUp("Sprint") && walkingStatus == Walking.SPRINTING)
         {
                 walkingStatus = Walking.WALKING;
-                animator.SetBool(crouchID, false);
-                animator.SetBool(sprintID, false);
+                animator.SetBool(CrouchID, false);
+                animator.SetBool(SprintID, false);
         }
 
         /* Toggle Pistol */
@@ -161,7 +158,7 @@ public class PlayerAnimation : MonoBehaviour {
         if (Input.GetButtonDown("Reload") && ( equipPistol || equipRifle) && !isReloading)
         {
             isReloading = true;
-            animator.SetBool(reloadID, true);
+            animator.SetBool(ReloadID, true);
         }
 
         /* Firing Weapon */
@@ -191,8 +188,8 @@ public class PlayerAnimation : MonoBehaviour {
     void FixedUpdate()
     {
         /* Update Fields For Animation Blending */
-        animator.SetFloat(speedXID, Input.GetAxis("Horizontal"));
-        animator.SetFloat(speedYID, Input.GetAxis("Vertical"));
+        animator.SetFloat(SpeedXID, Input.GetAxis("Horizontal"));
+        animator.SetFloat(SpeedYID, Input.GetAxis("Vertical"));
 
         MovePlayer();
         FaceCamera();
@@ -208,13 +205,13 @@ public class PlayerAnimation : MonoBehaviour {
     {
         float spineTilt = (equipRifle ? spineTiltRifle : equipPistol ? spineTiltPistol : 0);
         spineTiltCurrent = Mathf.Lerp(spineTiltCurrent, spineTilt, spineTiltSmoothness * Time.deltaTime);
-        playerSpine.transform.localEulerAngles = new Vector3(camCtrl.Pitch + spineTiltCurrent, 0, playerSpine.transform.localEulerAngles.z);
+        playerSpine.transform.localEulerAngles = new Vector3(mainCamController.Pitch + spineTiltCurrent, 0, playerSpine.transform.localEulerAngles.z);
     }
 
     /* Make Player Face the Camera Direction along y-axis */
     void FaceCamera()
     {
-        transform.eulerAngles = new Vector3(0, camCtrl.Yaw, 0);
+        transform.eulerAngles = new Vector3(0, mainCamController.Yaw, 0);
     }
 
     /* Character Movement */
@@ -225,11 +222,11 @@ public class PlayerAnimation : MonoBehaviour {
 
         RaycastHit sphereHit;
 
-        if (Physics.SphereCast(transform.position, charCtrl.radius, Vector3.down,
-            out sphereHit, charCtrl.height / 2f, Physics.AllLayers, QueryTriggerInteraction.Ignore))
+        if (Physics.SphereCast(transform.position, charController.radius, Vector3.down,
+            out sphereHit, charController.height / 2f, Physics.AllLayers, QueryTriggerInteraction.Ignore))
         {
             Debug.DrawLine(transform.position, sphereHit.point, Color.green);
-            Debug.DrawRay(transform.position - Vector3.down * charCtrl.height / 2f, Vector3.ProjectOnPlane(move_dir, sphereHit.normal), Color.yellow);
+            Debug.DrawRay(transform.position - Vector3.down * charController.height / 2f, Vector3.ProjectOnPlane(move_dir, sphereHit.normal), Color.yellow);
         }
 
         move_dir = Vector3.ProjectOnPlane(move_dir, sphereHit.normal).normalized
@@ -237,12 +234,12 @@ public class PlayerAnimation : MonoBehaviour {
                    * GetSpeedMultiplier(walkingStatus)
                    * Time.deltaTime;
 
-        if (!charCtrl.isGrounded)
+        if (!charController.isGrounded)
         {
             move_dir += Physics.gravity * gravityMultiplier;
         }
 
-        charCtrl.Move(move_dir);
+        charController.Move(move_dir);
     }
 
     void CrouchCamera()
@@ -265,46 +262,47 @@ public class PlayerAnimation : MonoBehaviour {
 
     }
 
+    #region Weapon Animations
+
     void DrawPistol()
     {
         equipPistol = true;
-        animator.SetBool(pistolID, true);
+        animator.SetBool(PistolID, true);
     }
 
     void HolsterPistol()
     {
         equipPistol = false;
-        animator.SetBool(pistolID, false);
+        animator.SetBool(PistolID, false);
     }
 
     void DrawRifle()
     {
         equipRifle = true;
-        animator.SetBool(rifleID, true);
+        animator.SetBool(RifleID, true);
     }
 
     void HolsterRifle()
     {
         equipRifle = false;
-        animator.SetBool(rifleID, false);
+        animator.SetBool(RifleID, false);
     }
 
     void DrawMelee()
     {
         equipMelee = true;
-        animator.SetBool(meleeID, true);
+        animator.SetBool(MeleeID, true);
     }
 
     void HolsterMelee()
     {
         equipMelee = false;
-        animator.SetBool(meleeID, false);
+        animator.SetBool(MeleeID, false);
     }
 
     private void Fire()
     {
-        Debug.Log(equipPistol);
-        Debug.Log(equipRifle);
+
         RaycastHit hit;
         Ray ray = new Ray(mainCam.transform.position, mainCam.transform.TransformDirection(Vector3.forward));
 
@@ -323,9 +321,11 @@ public class PlayerAnimation : MonoBehaviour {
         }
 
         isFiring = true;
-        animator.SetBool(fireID, true);
+        animator.SetBool(FireID, true);
         Invoke("FinishFiringBool", weapon.FireRatePerSec);
     }
+
+#endregion
 
     float GetSpeedMultiplier(Walking wk)
     {
@@ -341,12 +341,12 @@ public class PlayerAnimation : MonoBehaviour {
     void FinishReloading()
     {
         isReloading = false;
-        animator.SetBool(reloadID, false);
+        animator.SetBool(ReloadID, false);
     }
 
     void FinishFiring()
     {
-        animator.SetBool(fireID, false);
+        animator.SetBool(FireID, false);
     }
 
     void FinishFiringBool()

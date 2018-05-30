@@ -1,7 +1,4 @@
-﻿using System.Collections;
-using UnityEngine;
-using UnityEngine.AI;
-
+﻿using UnityEngine;
 
 public class EnemyController : MonoBehaviour
 {
@@ -10,6 +7,7 @@ public class EnemyController : MonoBehaviour
     [SerializeField] float headshotMultiplier = 3f;
     [SerializeField] int exp = 15;
 
+    public GameManagement gameManager;
     GameObject player;
     EnemyNavController navController;
 
@@ -17,7 +15,7 @@ public class EnemyController : MonoBehaviour
 
     void Awake()
     {
-        player = GameObject.Find("Player");
+        player = gameManager.player;
         navController = GetComponent<EnemyNavController>();
         staggerTriggerDamage = health / 3;
     }

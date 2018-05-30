@@ -23,7 +23,7 @@ public class ThirdPersonCameraControl : MonoBehaviour {
     float minDistance = 0.5f;
     float currDistance = 1.5f;
     float aimDistance = 1.5f;
-    float maxDistance = 3f;
+    float maxDistance = 1.5f;
 
     bool isAiming = false;
 
