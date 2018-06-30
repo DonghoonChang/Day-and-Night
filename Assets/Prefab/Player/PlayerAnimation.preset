@@ -29,39 +29,83 @@ Preset:
     value: 
     objectReference: {fileID: 0}
   - target: {fileID: 0}
-    propertyPath: baseSpeed
-    value: 1.5
+    propertyPath: OnAnimationRenderingOver.m_PersistentCalls.m_Calls.Array.size
+    value: 0
     objectReference: {fileID: 0}
   - target: {fileID: 0}
-    propertyPath: pushForce
-    value: 5
+    propertyPath: OnAnimationRenderingOver.m_TypeName
+    value: UnityEngine.Events.UnityEvent, UnityEngine.CoreModule, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
     objectReference: {fileID: 0}
-  - target: {fileID: 0}
-    propertyPath: crouchMultiplier
-    value: 0.66
-    objectReference: {fileID: 0}
-  - target: {fileID: 0}
-    propertyPath: sprintingMultiplier
-    value: 1.5
-    objectReference: {fileID: 0}
-  - target: {fileID: 0}
-    propertyPath: gravityMultiplier
-    value: 2
-    objectReference: {fileID: 0}
-  - target: {fileID: 0}
-    propertyPath: bulletMark
-    value: 
-    objectReference: {fileID: 1119417555099432, guid: d38ea09be8fd7a842b21ad11c7617e0f,
-      type: 2}
   - target: {fileID: 0}
     propertyPath: cameraPivot
     value: 
     objectReference: {fileID: 0}
   - target: {fileID: 0}
-    propertyPath: mainCamController
+    propertyPath: partsToFollowAim.head
     value: 
     objectReference: {fileID: 0}
   - target: {fileID: 0}
-    propertyPath: playerSpine
+    propertyPath: partsToFollowAim.spine
     value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: partsToFollowAim.weaponSlot
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: partsToFollowAim.bodyFocus
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: partsToFollowAim.weaponFocus
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: pivotPositions.walkPosition.x
+    value: 0.5
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: pivotPositions.walkPosition.y
+    value: 1.8
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: pivotPositions.walkPosition.z
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: pivotPositions.crouchPosition.x
+    value: 0.5
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: pivotPositions.crouchPosition.y
+    value: 1.35
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: pivotPositions.crouchPosition.z
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: pivotPositions.sprintPosition.x
+    value: 0.5
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: pivotPositions.sprintPosition.y
+    value: 1.6
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: pivotPositions.sprintPosition.z
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: baseSpeed
+    value: 1.5
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: sprintSpeed
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: crouchSpeed
+    value: 0
     objectReference: {fileID: 0}

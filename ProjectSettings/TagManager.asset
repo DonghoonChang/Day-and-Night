@@ -6,6 +6,11 @@ TagManager:
   tags:
   - Terrain
   - Enemy
+  - Wood
+  - Metal
+  - Concrete
+  - Sand
+  - Water
   layers:
   - Default
   - TransparentFX

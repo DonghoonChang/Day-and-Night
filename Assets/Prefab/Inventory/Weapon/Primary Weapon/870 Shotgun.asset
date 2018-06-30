@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e1f2c0031a828d458ddd5858f2c5d8c, type: 3}
+  m_Name: 870 Shotgun
+  m_EditorClassIdentifier: 
+  itemName: 870 Shotgun
+  description: Shotgun
+  icon: {fileID: 0}
+  isUsable: 1
+  isCombinable: 1
+  isEssential: 1
+  isDestoryedOnUse: 0
+  muzzleFlashSFX: {fileID: 1046387109213498, guid: 5faa5b2dbf003724e97d2a36d7e30fe3,
+    type: 2}
+  cartridgeSFX: {fileID: 1306620107262110, guid: b46a18847c96d594aa5fab09bfedba5d,
+    type: 2}
+  attackSound:
+    clip: {fileID: 8300000, guid: 1e701d98c587866438b02c5fcee41237, type: 3}
+    volume: 1
+    spatialBlend: 1
+    pitch: 1
+    loop: 0
+    source: {fileID: 0}
+  drayAttackSound:
+    clip: {fileID: 0}
+    volume: 0
+    spatialBlend: 0
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  properties:
+    group: 1
+    type: 11
+    ammo: 3
+    isTopModifiable: 1
+    isMuzzleModifiable: 1
+    isBarrelModifiable: 1
+    isAutomatic: 0
+  stats:
+    damage: 12
+    concussion: 3
+    magazineCapacity: 5
+    fireRate: 600
+    pellet: 10
+    minSpray: 2
+    maxSpray: 20
+    sprayAcceleration: 3

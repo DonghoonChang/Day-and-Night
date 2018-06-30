@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e1f2c0031a828d458ddd5858f2c5d8c, type: 3}
+  m_Name: M4 Carbine
+  m_EditorClassIdentifier: 
+  itemName: M4 Carbine
+  description: No Name
+  icon: {fileID: 0}
+  isUsable: 1
+  isCombinable: 1
+  isEssential: 1
+  isDestoryedOnUse: 0
+  muzzleFlashSFX: {fileID: 1046387109213498, guid: 5faa5b2dbf003724e97d2a36d7e30fe3,
+    type: 2}
+  cartridgeSFX: {fileID: 1306620107262110, guid: cb3d6d8f6c33e8a4ba34ea3e8f2c19d6,
+    type: 2}
+  attackSound:
+    clip: {fileID: 8300000, guid: 75d48a59498f6e54190cea7693b5a526, type: 3}
+    volume: 0.5
+    spatialBlend: 1
+    pitch: 1
+    loop: 0
+    source: {fileID: 0}
+  dryAttackSound:
+    clip: {fileID: 0}
+    volume: 0
+    spatialBlend: 0
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  properties:
+    group: 1
+    type: 10
+    ammo: 0
+    isTopModifiable: 0
+    isMuzzleModifiable: 1
+    isBarrelModifiable: 1
+    isAutomatic: 1
+  stats:
+    damage: 15
+    concussion: 15
+    magazineCapacity: 20
+    fireRate: 600
+    pellet: 1
+    minSpray: 0
+    maxSpray: 15
+    sprayAcceleration: 1.5
