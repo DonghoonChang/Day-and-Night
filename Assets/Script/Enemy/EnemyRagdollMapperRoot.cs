@@ -19,6 +19,7 @@ public class EnemyRagdollMapperRoot : MonoBehaviour {
             Transform matchingPart = masterRig.transform.Find(relPath) as Transform;
             EnemyRagdollMapperParts mapping = slaveRigTransforms[i].gameObject.AddComponent<EnemyRagdollMapperParts>() as EnemyRagdollMapperParts;
             mapping.MatchingPart = matchingPart;
+
         }
 
         slaveRigMappings = slaveRig.GetComponentsInChildren<EnemyRagdollMapperParts>();

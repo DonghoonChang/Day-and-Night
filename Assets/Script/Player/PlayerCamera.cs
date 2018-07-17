@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using GameManager = MyGame.GameManagement.GameManager;
 using RayCastLayers = MyGame.GameManagement.RayCastLayers;
+using Item = MyGame.Inventory.Item;
 
 namespace MyGame.Player
 {
@@ -8,21 +9,25 @@ namespace MyGame.Player
     {
 
         GameManager gameManager;
+        PlayerCharacter player;
 
         [SerializeField]
-        Transform cameraPivot;
+        Transform cameraBase;
 
         [SerializeField]
-        Transform bodyFocus;
+        Camera mainCamera;
 
         [SerializeField]
-        Transform weaponFocus;
+        Camera vfxCamera;
+
+        [SerializeField]
+        PlayerRaycastHitPoint _hitPoint;
+
+        [SerializeField]
+        Transform playerBodyOrientation;
 
         [SerializeField]
         CamConfiguration camConfig;
-
-        Player player;
-        Camera mainCamera;
 
         float yaw = 0;
         float pitch = 0;
@@ -39,19 +44,27 @@ namespace MyGame.Player
 
         #region Properties
         
-        public Transform BodyFocus
+        public Transform BodyOrientation
         {
             get
             {
-                return bodyFocus;
+                return playerBodyOrientation;
             }
         }
 
-        public Transform WeaponFocus
+        public Transform AimPoint
         {
             get
             {
-                return weaponFocus;
+                return _hitPoint.transform;
+            }
+        }
+
+        public InteractableObject InteractableObject
+        {
+            get
+            {
+                return _hitPoint.InteractableObject;
             }
         }
 
@@ -62,7 +75,21 @@ namespace MyGame.Player
 
         void Awake()
         {
-            mainCamera = Camera.main;
+            if (mainCamera ==  null)
+                mainCamera = Camera.main;
+
+            vfxCamera.gameObject.SetActive(false);
+            _hitPoint = GetComponentInChildren<PlayerRaycastHitPoint>();
+        }
+
+        private void FixedUpdate()
+        {
+            if (player.PlayerStatus.isCrouching)
+                vfxCamera.gameObject.SetActive(true);
+
+            else
+                vfxCamera.gameObject.SetActive(false);
+
         }
 
         void Start()
@@ -73,6 +100,9 @@ namespace MyGame.Player
 
         void Update()
         {
+            if (GameTime.isPaused)
+                return;
+
             UpdatePitchYawScroll();
             UpdateCamPitchAndYaw();
             UpdateCamPosition();
@@ -81,7 +111,7 @@ namespace MyGame.Player
         void LateUpdate()
         {
             UpdateCamBase();
-            AdjustWeaponFocusPoint();
+            AdjustPlayerAimPoint();
         }
 
         #endregion
@@ -90,7 +120,7 @@ namespace MyGame.Player
 
         void UpdateCamBase()
         {
-            transform.position = Vector3.Lerp(transform.position, cameraPivot.position, camConfig.camTightness * Time.deltaTime);
+            transform.position = Vector3.Lerp(transform.position, cameraBase.position, camConfig.camTightness * GameTime.deltaTime);
         }
 
         void UpdatePitchYawScroll()
@@ -114,31 +144,42 @@ namespace MyGame.Player
             RaycastHit hit;
 
             /* Camera Collision */
-            if (Physics.Linecast(transform.position - transform.forward * camConfig.minDistance, transform.position - transform.forward * camConfig.currDistance, out hit))
+            if (Physics.Linecast(transform.position - transform.forward * camConfig.minDistance, transform.position - transform.forward * camConfig.currDistance, out hit, RayCastLayers.EnvironmentLayer, QueryTriggerInteraction.UseGlobal))
             {
-                mainCamera.transform.localPosition = Vector3.Slerp(mainCamera.transform.localPosition, -Vector3.forward * (hit.distance * 0.9f), camConfig.camTightness * Time.deltaTime);
+                mainCamera.transform.localPosition = Vector3.Slerp(mainCamera.transform.localPosition, -Vector3.forward * (hit.distance * 0.9f), camConfig.camTightness * GameTime.deltaTime);
+                vfxCamera.transform.localPosition = mainCamera.transform.localPosition;
             }
 
             else
             {
-                if (!player.PlayerStatus.upperBody.isAiming)
-                    mainCamera.transform.localPosition = Vector3.Slerp(mainCamera.transform.localPosition, -Vector3.forward * camConfig.currDistance, camConfig.camTightness * Time.deltaTime);
+                if (!player.PlayerStatus.isAiming)
+                {
+                    mainCamera.transform.localPosition = Vector3.Slerp(mainCamera.transform.localPosition, -Vector3.forward * camConfig.currDistance, camConfig.camTightness * GameTime.deltaTime);
+                    vfxCamera.transform.localPosition = mainCamera.transform.localPosition;
+                }
 
                 else
-                    mainCamera.transform.localPosition = Vector3.Slerp(mainCamera.transform.localPosition, -Vector3.forward * camConfig.currDistance * camConfig.zoomInFactor, camConfig.camTightness * Time.deltaTime);
+                {
+                    mainCamera.transform.localPosition = Vector3.Slerp(mainCamera.transform.localPosition, -Vector3.forward * camConfig.currDistance * camConfig.zoomInFactor, camConfig.camTightness * GameTime.deltaTime);
+                    vfxCamera.transform.localPosition = mainCamera.transform.localPosition;
+                }
             }
         }
 
-        void AdjustWeaponFocusPoint()
+        void AdjustPlayerAimPoint()
         {
             RaycastHit hit;
             Ray ray = new Ray(mainCamera.transform.position, mainCamera.transform.forward);
 
-            if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~RayCastLayers.IgnoreRaycastLayer, QueryTriggerInteraction.Ignore))
-                weaponFocus.position = hit.point;
+            if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~(RayCastLayers.IgnoreRaycastLayer + RayCastLayers.PlayerLayer), QueryTriggerInteraction.Ignore))
+            {
+                _hitPoint.transform.position = hit.point;
+            }
 
             else
-                weaponFocus.position = mainCamera.transform.position + mainCamera.transform.forward * 20f;
+            {
+                _hitPoint.transform.position = mainCamera.transform.position + mainCamera.transform.forward * 20f;
+            }
         }
 
         #endregion

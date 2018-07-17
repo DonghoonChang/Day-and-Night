@@ -1,16 +1,11 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class EnemyRagdollMapperParts : MonoBehaviour {
 
+    const float tightness = 25f;
+
     Transform matchingPart;
     Rigidbody rigidBody;
-    float tightness;
-
-    private void OnEnable()
-    {
-        tightness = 25f;
-    }
 
     public Transform MatchingPart
     {
@@ -24,14 +19,9 @@ public class EnemyRagdollMapperParts : MonoBehaviour {
     {
         if (matchingPart != null)
         {
-            transform.localPosition = Vector3.Lerp(transform.localPosition, matchingPart.localPosition, tightness * Time.deltaTime);
-            transform.localRotation = Quaternion.Lerp(transform.localRotation, matchingPart.localRotation, tightness * Time.deltaTime);
-            //transform.localPosition = matchingPart.localPosition;
-            //transform.localRotation = matchingPart.localRotation;
+            transform.localPosition = Vector3.Lerp(transform.localPosition, matchingPart.localPosition, tightness * GameTime.deltaTime);
+            transform.localRotation = Quaternion.Lerp(transform.localRotation, matchingPart.localRotation, tightness * GameTime.deltaTime);
         }
-
-        else
-            Debug.LogWarning(transform.name + "is Without Its Matching Part");
     }
 
     private void OnDestroy()

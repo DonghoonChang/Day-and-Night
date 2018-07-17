@@ -1,16 +1,8 @@
-﻿using UnityEngine;
-
-namespace MyGame.Inventory.Weapon
+﻿namespace MyGame.Inventory.Weapon
 {
-    [CreateAssetMenu(fileName = "Item", menuName = "Inventory/WeaponCard")]
     public class WeaponCard : ItemCard
     {
-
-        public GameObject muzzleFlashSFX;
-        public GameObject cartridgeSFX;
         public Sound attackSound;
-        public Sound dryAttackSound;
-
         public WeaponProperties properties;
         public WeaponStats stats;
     }
@@ -18,16 +10,12 @@ namespace MyGame.Inventory.Weapon
     [System.Serializable]
     public class WeaponProperties
     {
-        /*
-         * Animation Related
-         */
-
-        public WeaponGroup group;
-        public WeaponType type;
-        public AmmoType ammo;
+        public WeaponGroup weaponGroup;
+        public WeaponType weaponType;
+        public AmmoType ammoType;
 
         /* Scope & Laser Sight */
-        public bool isTopModifiable;
+        public bool isScopeModifiable;
 
         /* Silencer & Bayonet */
         public bool isMuzzleModifiable;
@@ -61,14 +49,14 @@ namespace MyGame.Inventory.Weapon
 
         /* Weapon Bullet Spray */
         /* Angle between forward and up in degrees */
-        public float minSpray;
-        public float maxSpray;
-        public float sprayAcceleration;
+        public float spreadStep;
+        public float minSpread;
+        public float maxSpread;
     }
 
-    public enum WeaponGroup : int { Primary = 1, Secondary, Melee }
+    public enum WeaponGroup : int { Main = 1, Secondary, Melee }
     public enum WeaponType : int { Rifle = 10, Shotgun, Cocking = 20, NoCocking }
-    public enum AmmoType : int { Handgun = 0, Magnum, Rifle, Shotgun }
+    public enum AmmoType : int { Rifle = 10, Shotgun, MachineGun, Pistol = 20, SubmachineGun, Revolver}
 }
 
 

@@ -22,8 +22,6 @@ namespace MyGame.GameManagement
         {
             if (Instance == null)
                 Instance = this;
-
-            DontDestroyOnLoad(gameObject);
         }
     }
 }

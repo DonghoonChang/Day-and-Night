@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using EnemyCharacter = MyGame.Enemy.EnemyCharacter;
+
 
 namespace MyGame.GameManagement
 {
@@ -9,7 +11,7 @@ namespace MyGame.GameManagement
 
         GameManager gameManager;
 
-        [SerializeField] List<Enemy.Enemy> spawns = new List<Enemy.Enemy>();
+        [SerializeField] List<EnemyCharacter> spawns = new List<Enemy.EnemyCharacter>();
 
         public GameObject spawnPrefab;
         public GameObject spawnMarker;
@@ -40,14 +42,14 @@ namespace MyGame.GameManagement
 
         public void SetNoiseTirggers(float multiplier)
         {
-            foreach (Enemy.Enemy navAnim in spawns)
+            foreach (EnemyCharacter navAnim in spawns)
                 SetNoiseTirggers(multiplier);
         }
 
         public void Spawn()
         {
             GameObject spawn = Instantiate(spawnPrefab, transform.position, Quaternion.LookRotation(Vector3.up));
-            Enemy.Enemy enemy = spawn.GetComponent<Enemy.Enemy>();
+            EnemyCharacter enemy = spawn.GetComponent<EnemyCharacter>();
             spawn.SetActive(true);
 
             if (enemy != null)

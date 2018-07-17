@@ -2,28 +2,174 @@
 using System.Collections.Generic;
 using UnityEngine;
 using RayCastLayers = MyGame.GameManagement.RayCastLayers;
+using EnemyCharacter = MyGame.Enemy.EnemyCharacter;
 
 
 namespace MyGame.Inventory.Weapon
 {
     public class RangedWeapon : Weapon
     {
-        static float sprayDeceleration = 2.5f;
-
-        AudioSource dryAttackSound;
-        AudioSource silencedAttackSound;
+        public RangedWeaponModifications modifications;
 
         [SerializeField]
-        int currentAmmo;
+        RangedWeaponCard weaponCard;
+
+        public Transform muzzleTip;
+        public Transform cartridgeOutlet;
+
+        Transform _weaponFocus;
+
+        AudioSource _attackSound;
+        AudioSource _dryAttackSound;
+        AudioSource _silencedAttackSound;
 
         [SerializeField]
-        float currentSpray;
+        int _currentAmmo = 0;
+        float _currentSpread = 0f;
 
-        [SerializeField]
-        bool isChockAttaced = false;
+        #region Weapon Stats
 
-        Transform weaponFocus;
+        int _damage;
+        int _concussion;
+        int _magazineCapacity;
+        int _fireRate;
+        int _pellet;
+        float _spreadStep;
+        float _minSpread;
+        float _maxSpread;
 
+        #endregion
+
+        #region Properties
+
+        // Animation
+        public override WeaponProperties Properties
+        {
+            get
+            {
+                if (weaponCard != null)
+                    return weaponCard.properties;
+
+                else
+                    return null;
+            }
+        }
+
+        public override WeaponStats Stats
+        {
+            get
+            {
+                if (weaponCard != null)
+                    return weaponCard.stats;
+
+                else
+                    return null;
+            }
+        }
+
+        // UI + Game Logic
+        public override Sprite Icon
+        {
+            get
+            {
+                return weaponCard.icon;
+            }
+        }
+
+        public override string Name
+        {
+            get
+            {
+                return weaponCard.name;
+            }
+        }
+
+        public override string Description
+        {
+            get
+            {
+                return weaponCard.description;
+            }
+        }
+
+        public override int Damage
+        {
+            get
+            {
+                return _damage;
+            }
+        }
+
+        public override int FireRate
+        {
+            get
+            {
+                return _fireRate;
+            }
+        }
+
+        public override float AttackDelay
+        {
+            get
+            {
+                return 60f / _fireRate;
+            }
+        }
+
+        public int MagazineCapacity
+        {
+            get
+            {
+                return _magazineCapacity;
+            }
+        }
+
+        public int CurrentAmmo
+        {
+            get
+            {
+                return _currentAmmo;
+            }
+
+            set
+            {
+                _currentAmmo = Mathf.Max(0, value);
+            }
+        }
+
+        public float SpreadStep
+        {
+            get
+            {
+                return _spreadStep;
+            }
+        }
+
+        public float MinSpread
+        {
+            get
+            {
+                return _minSpread;
+            }
+        }
+
+        public float MaxSpread
+        {
+            get
+            {
+                return _maxSpread;
+            }
+        }
+
+        public bool IsAutomatic
+        {
+            get
+            {
+                return weaponCard.properties.isAutomatic;
+            }
+        }
+
+        #endregion
 
         #region Awake and Updates
 
@@ -31,46 +177,71 @@ namespace MyGame.Inventory.Weapon
         {
             base.Awake();
 
-            dryAttackSound = gameObject.AddComponent<AudioSource>();
-            silencedAttackSound = gameObject.AddComponent<AudioSource>();
+            _damage = weaponCard.stats.damage;
+            _concussion = weaponCard.stats.concussion;
+            _magazineCapacity = weaponCard.stats.magazineCapacity;
+            _fireRate = weaponCard.stats.fireRate;
+            _pellet = weaponCard.stats.pellet;
+            _spreadStep = weaponCard.stats.spreadStep;
+            _minSpread = weaponCard.stats.minSpread;
+            _maxSpread = weaponCard.stats.maxSpread;
 
-            Sound.SoundtoSource(dryAttackSound, weaponCard.dryAttackSound);
-            Sound.SoundtoSource(silencedAttackSound, weaponCard.dryAttackSound);
+            _attackSound = gameObject.AddComponent<AudioSource>();
+            _dryAttackSound = gameObject.AddComponent<AudioSource>();
+            _silencedAttackSound = gameObject.AddComponent<AudioSource>();
+
+            Sound.SoundtoSource(_attackSound, weaponCard.attackSound);
+            Sound.SoundtoSource(_dryAttackSound, weaponCard.dryAttackSound);
+            Sound.SoundtoSource(_silencedAttackSound, weaponCard.silencedAttackSound);
         }
 
         protected override void Start()
         {
             base.Start();
-
-            weaponFocus = gameManager.PlayerCamera.WeaponFocus;
+            _weaponFocus = _gameManager.PlayerCamera.AimPoint;
         }
 
-        void Update()
+        protected virtual void OnEnable()
         {
-            currentSpray = Mathf.Lerp(currentSpray, weaponCard.stats.minSpray, sprayDeceleration * Time.deltaTime);
+            _currentSpread = 0f;
         }
 
         #endregion
 
-
         #region Main Function
 
-        public override void Attack()
+        public void Attack(float spread, bool dry)
         {
-            base.Attack();
+            _currentSpread = spread;
+            CancelInvoke("ReleaseAttackLock");
+            Invoke("ReleaseAttackLock", AttackDelay);
+
+            if (dry)
+            {
+                _OnCharacterRenderingOver.AddListener(DryAttackRoutine);
+
+            }
+
+            else
+            {
+                _currentAmmo--;
+                _OnCharacterRenderingOver.AddListener(AttackRoutine);
+            }
         }
 
-        protected override void AttackListener()
+        protected override void AttackRoutine()
         {
-            base.AttackListener();
-            StartCoroutine("FireSFX");
+            base.AttackRoutine();
+            _attackSound.Play();
+
+            StartCoroutine("FireVFX");
 
             RaycastHit hit;
             Ray ray;
 
             for (int i = 0; i < Stats.pellet; i++)
             {
-                ray = new Ray(muzzleTip.position, GetBulletDirection(currentSpray));
+                ray = new Ray(muzzleTip.position, GetBulletDirection(_currentSpread));
 
                 if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~RayCastLayers.IgnoreRaycastLayer, QueryTriggerInteraction.Ignore))
                 {
@@ -79,7 +250,7 @@ namespace MyGame.Inventory.Weapon
 
                     if (tag == "Enemy")
                     {
-                        Enemy.Enemy hitEnemy = hit.transform.root.GetComponent<Enemy.Enemy>();
+                        EnemyCharacter hitEnemy = hit.transform.root.GetComponent<EnemyCharacter>();
 
                         if (hitTargets.ContainsKey(hitEnemy))
                         {
@@ -97,55 +268,53 @@ namespace MyGame.Inventory.Weapon
 
                     else if (tag == "Concrete")
                     {
-                        GameObject bulletImpactConcrete = Instantiate(sfxManager.bulletImpactConcrete, hit.point, Quaternion.LookRotation(hit.normal));
-                        Destroy(bulletImpactConcrete, gameManager.GraphicsConfiguration.bulletMarkLifeTime);
+                        GameObject bulletImpactConcrete = Instantiate(_sfxManager.bulletImpactConcrete, hit.point, Quaternion.LookRotation(hit.normal));
+                        Destroy(bulletImpactConcrete, _gameManager.GraphicsConfiguration.bulletMarkLifeTime);
                     }
 
                     else if (tag == "Metal")
                     {
-                        GameObject bulletImpactConcrete = Instantiate(sfxManager.bulletImpactMetal, hit.point, Quaternion.LookRotation(hit.normal));
-                        Destroy(bulletImpactConcrete, gameManager.GraphicsConfiguration.bulletMarkLifeTime);
+                        GameObject bulletImpactConcrete = Instantiate(_sfxManager.bulletImpactMetal, hit.point, Quaternion.LookRotation(hit.normal));
+                        Destroy(bulletImpactConcrete, _gameManager.GraphicsConfiguration.bulletMarkLifeTime);
                     }
 
                     else if (tag == "Wood")
                     {
-                        GameObject bulletImpactConcrete = Instantiate(sfxManager.bulletImpactWood, hit.point, Quaternion.LookRotation(hit.normal));
-                        Destroy(bulletImpactConcrete, gameManager.GraphicsConfiguration.bulletMarkLifeTime);
+                        GameObject bulletImpactConcrete = Instantiate(_sfxManager.bulletImpactWood, hit.point, Quaternion.LookRotation(hit.normal));
+                        Destroy(bulletImpactConcrete, _gameManager.GraphicsConfiguration.bulletMarkLifeTime);
                     }
 
                     else if (tag == "Sand")
                     {
-                        GameObject bulletImpactConcrete = Instantiate(sfxManager.bulletImpactSand, hit.point, Quaternion.LookRotation(hit.normal));
-                        Destroy(bulletImpactConcrete, gameManager.GraphicsConfiguration.bulletMarkLifeTime);
+                        GameObject bulletImpactConcrete = Instantiate(_sfxManager.bulletImpactSand, hit.point, Quaternion.LookRotation(hit.normal));
+                        Destroy(bulletImpactConcrete, _gameManager.GraphicsConfiguration.bulletMarkLifeTime);
                     }
 
                     else if (tag == "Water")
                     {
-                        GameObject bulletImpactConcrete = Instantiate(sfxManager.bulletImpactWater, hit.point, Quaternion.LookRotation(hit.normal));
-                        Destroy(bulletImpactConcrete, gameManager.GraphicsConfiguration.bulletMarkLifeTime);
+                        GameObject bulletImpactConcrete = Instantiate(_sfxManager.bulletImpactWater, hit.point, Quaternion.LookRotation(hit.normal));
+                        Destroy(bulletImpactConcrete, _gameManager.GraphicsConfiguration.bulletMarkLifeTime);
                     }
 
                     else
                     {
-                        GameObject bulletImpactConcrete = Instantiate(sfxManager.bulletImpactWood, hit.point, Quaternion.LookRotation(hit.normal));
-                        Destroy(bulletImpactConcrete, gameManager.GraphicsConfiguration.bulletMarkLifeTime);
+                        GameObject bulletImpactConcrete = Instantiate(_sfxManager.bulletImpactWood, hit.point, Quaternion.LookRotation(hit.normal));
+                        Destroy(bulletImpactConcrete, _gameManager.GraphicsConfiguration.bulletMarkLifeTime);
                     }
 
                 }
             }
 
-            foreach (Enemy.Enemy enemy in hitTargets.Keys)
-            {
+            foreach (EnemyCharacter enemy in hitTargets.Keys)
                 enemy.OnHit(hitTargets[enemy].ToArray(), Stats);
-            }
 
-            currentSpray = Mathf.Clamp(currentSpray + weaponCard.stats.sprayAcceleration, weaponCard.stats.minSpray, weaponCard.stats.maxSpray);
             hitTargets.Clear();
         }
 
-        public override void ReleaseFireLock()
+        protected void DryAttackRoutine()
         {
-            isAttackLocked = false;
+            base.AttackRoutine();
+            _dryAttackSound.Play();
         }
 
         Vector3 GetBulletDirection(float spray)
@@ -153,14 +322,14 @@ namespace MyGame.Inventory.Weapon
             float randSpray = Random.Range(0, spray);
             float randRotation = Random.Range(0, 360f);
 
-            Vector3 bulletNormal = (weaponFocus.position - muzzleTip.position).normalized;
+            Vector3 bulletNormal = (_weaponFocus.position - muzzleTip.position).normalized;
             Vector3 bulletSpray = bulletNormal + Mathf.Tan(randSpray * (2 * Mathf.PI) / 360f) * muzzleTip.up; /* Times current spray */;
             bulletSpray = Quaternion.AngleAxis(randRotation, bulletNormal) * bulletSpray;
 
             return bulletSpray;
         }
 
-        IEnumerator FireSFX()
+        IEnumerator FireVFX()
         {
             yield return null;
 
@@ -177,7 +346,20 @@ namespace MyGame.Inventory.Weapon
             }
         }
 
+        public bool IsMagazineEmpty()
+        {
+            return _currentAmmo == 0;
+        }
+
         #endregion
+    }
+
+    [System.Serializable]
+    public class RangedWeaponModifications
+    {
+        public bool isMuzzleModified = false;
+        public bool isScopeModified = false;
+        public bool isBarrelModified = false;
     }
 }
 

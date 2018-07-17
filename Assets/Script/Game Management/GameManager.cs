@@ -6,9 +6,8 @@ namespace MyGame.GameManagement
 {
     public class GameManager : MonoBehaviour
     {
-
         [SerializeField]
-        Player.Player player;
+        PlayerCharacter player;
 
         [SerializeField]
         PlayerCamera playerCamera;
@@ -56,11 +55,19 @@ namespace MyGame.GameManagement
             }
         }
 
-        public Player.Player Player
+        public PlayerCharacter Player
         {
             get
             {
                 return player;
+            }
+        }
+
+        public Vector3 PlayerPosition
+        {
+            get
+            {
+                return player.transform.position;
             }
         }
 
@@ -71,6 +78,7 @@ namespace MyGame.GameManagement
                 return playerCamera;
             }
         }
+
         #endregion
 
         void Awake()
@@ -78,10 +86,6 @@ namespace MyGame.GameManagement
             if (Instance == null)
                 Instance = this;
 
-            DontDestroyOnLoad(gameObject);
-
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = !(Cursor.lockState == CursorLockMode.Locked);
         }
 
         #region Helpers
@@ -110,12 +114,17 @@ namespace MyGame.GameManagement
 
     public class RayCastLayers
     {
+        // Built-i Layer
         public static LayerMask DefaultLayer = 0;
         public static LayerMask TransparentFXLayer = (1 << 1);
         public static LayerMask IgnoreRaycastLayer = (1 << 2);
         public static LayerMask WaterLayer = (1 << 4);
-        public static LayerMask UILayer = (1 << 5);
-        public static LayerMask PlayerLayer = (1 << 8);
+
+        // Custom Layer
+        public static LayerMask EnvironmentLayer = (1 << 8);
+        public static LayerMask EnemyLayer = (1 << 9);
+        public static LayerMask PlayerLayer = (1 << 10);
+        public static LayerMask VFXLayer = (1 << 11);
     }
 
     [System.Serializable]

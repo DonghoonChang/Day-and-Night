@@ -1,40 +1,62 @@
 ﻿using UnityEngine;
 
-public abstract class EnemyCard : ScriptableObject {
+namespace MyGame.Enemy
+{
+    [CreateAssetMenu(fileName = "Enemy", menuName = "Enemy/EnemyStatsCard")]
+    public class EnemyStatsCard : ScriptableObject
+    {
+        public EnemyStats stats;
+        public EnemyAlertness alertness;
+    }
 
-    public EnemyStats stats;
-    public EnemyProperties properties;
+    [CreateAssetMenu(fileName = "Enemy", menuName = "Enemy/EnemyBehaviorCard")]
+    public class EnemyBehaviorCard : ScriptableObject
+    {
+        public EnemyAnimations animations;
+    }
 
+    [System.Serializable]
     public class EnemyStats
     {
-        public int baseHealth;
-        public int basExp;
-        public int baseDamage;
-        public int baseDefense;
+        public float health;
+        public float exp;
+        public float damage;
+        public float defense;
 
-        public float baseSpeed;
-        public float chaseSpeed;
-        public float rotateSpeedWatch;
-        public float rotateSpeedFollow;
-        public float watchTriggerAngle;
-
-        public float startWatchDistance;
-        public float startFollowDistance;
-        public float startChaseDistance;
-        public float stopChaseDistance;
-        public float startAttackDistance;
+        public float headshotMultiplier;
+        public float staggerHealthMultiplier;
+        public float criticalHealthMultiplier;
+        public float nearDeathHealthMultiplier;
+        public float staggerConcussionThreshold;
     }
 
-    public class EnemyProperties
+    [System.Serializable]
+    public class EnemyAlertness
     {
-        /* Enemy rages if currentHealth < totalHealth * staggerThreshhold */
-        public float rageThreshhold;
+        public float noiseSensitivity;
+        public float alterTriggerRadius;
 
-        /* Enemy staggers if damage taken in a single hit > totalHealth * staggerThreshhold */
-        public float staggerThreshhold;
+        public float fieldOfView;
+        public float chaseStartDistance;
+        public float chaseStopDistance;
+    }
 
-        /* Enemy runs away if damage taken in a single hit > totalHealth * runawayThreshhold */
-        public float runawayThreshhold;
+    [System.Serializable]
+    public class EnemyAnimations
+    {
+        public float walkingSpeed;
+        public float runningSpeed;
+        public float rotateSpeedWatch;
+        public float rotateMinimumAngle;
+        public float rotateSpeedWalk;
+        public float attackDelay;
 
+        /* Number of Available Animations to choose from */
+        public int totalAttackAnimations;
+        public int totalIdleAnimations;
+        public int totalWalkAnimations;
+        public int totalChaseAnimations;
+        public int totalStaggerAnimations;
     }
 }
+

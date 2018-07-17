@@ -1,52 +1,51 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Events;
 using GameManager = MyGame.GameManagement.GameManager;
 using WeaponProperties = MyGame.Inventory.Weapon.WeaponProperties;
+using WeaponGroup = MyGame.Inventory.Weapon.WeaponGroup;
+using WeaponType = MyGame.Inventory.Weapon.WeaponType;
 
 namespace MyGame.Player
 {
     public class PlayerAnimator : MonoBehaviour
     {
-        /*
-         * Player Animation
-         */
-
         #region Statics Variables
 
         static int SpeedXID = Animator.StringToHash("SpeedX");
         static int SpeedYID = Animator.StringToHash("SpeedY");
         static int CrouchID = Animator.StringToHash("Crouch");
         static int SprintID = Animator.StringToHash("Sprint");
+        static int WeaponOutID = Animator.StringToHash("Weapon Out");
         static int WeaponGroupID = Animator.StringToHash("Weapon Group");
         static int WeaponTypeID = Animator.StringToHash("Weapon Type");
-        static int ReloadID = Animator.StringToHash("Reload");
-        static int AttackID = Animator.StringToHash("Attack");
         static int AimID = Animator.StringToHash("Aim");
+        static int AttackID = Animator.StringToHash("Attack");
+        static int ReloadID = Animator.StringToHash("Reload");
 
-        static float WaistMakeUp = 40f;
         static float objectPushForce = 2f;
-        static float LowerCameraSpeed = 5f;
-        static float GravityMultiplier = 2f;
+        static float GravityMultiplier = 10f;
 
         #endregion
 
         public UnityEvent OnAnimationRenderingOver;
 
-        /* Camera */
+        // Camera
         [SerializeField]
         Transform cameraPivot;
 
-        /* Posture & Weapon */
-        [SerializeField]
-        PartsToFollowAim partsToFollowAim;
-
-        /* Camera Movement */
         [SerializeField]
         PivotPositions pivotPositions;
 
+        // Posture
+        [SerializeField]
+        PartsLookAtAim partsLookAtAim;
 
-        /* Player Movement */
+        [SerializeField]
+        PostureAdjustment postureAdjustment;
+
+        Vector3 currentSpineAdjustment;
+
+        // Movement Speed
         [SerializeField]
         [Range(0.1f, 5f)]
         float baseSpeed;
@@ -58,8 +57,7 @@ namespace MyGame.Player
         [SerializeField]
         [Range(0.1f, 5f)]
         float crouchSpeed;
-
-
+        
         /* Components */
         Animator animator;
         PlayerAudioPlayer playerAudio;
@@ -69,28 +67,15 @@ namespace MyGame.Player
         PlayerCamera playerCamera;
         PlayerWeaponSlot weaponSlot;
 
-        /* Animation Behaviour */
-        float horizontalAxis = 0f;
-        float verticalAxis = 0f;
-        float jogClamp = 0.5f;
-
-        bool inIdleAnimation = false;
-
-
+        // Animation Status Tracking
+        public bool isWeaponOut = false; // Weapon Drawn Out (Firing or Not)
+        public bool isWeaponFiring = false; // Weapon in Firing Animation (Different from Fire Locked)
+        public bool isWeaponReloading = false; // Weapon Ready to Fire
 
         #region Properties
 
-        public Transform CameraPivot
-        {
-            get
-            {
-                return cameraPivot;
-            }
-        }
-
         #endregion
 
-        /* Others */
         #region Awake to Updates
 
         void Awake()
@@ -98,17 +83,20 @@ namespace MyGame.Player
             animator = GetComponent<Animator>();
             playerAudio = GetComponent<PlayerAudioPlayer>();
             charController = GetComponent<CharacterController>();
-            playerStatus = GetComponent<Player>().PlayerStatus;
-
+            playerStatus = GetComponent<PlayerCharacter>().PlayerStatus;
             weaponSlot = GetComponentInChildren<PlayerWeaponSlot>();
-            partsToFollowAim.weaponSlot = weaponSlot.transform;
+
+            partsLookAtAim.weaponSlot = weaponSlot.transform;
+            currentSpineAdjustment = postureAdjustment.spineHipAdjustment;
+
+            weaponSlot.OnWeaponAnimationChanged.AddListener(ChangeWeaponAnimationGroup);
         }
 
         void Start()
         {
             // Set Aim Focus Points
-            partsToFollowAim.weaponFocus = GameManager.Instance.PlayerCamera.WeaponFocus;
-            partsToFollowAim.bodyFocus = GameManager.Instance.PlayerCamera.BodyFocus;
+            partsLookAtAim.weaponFocus = GameManager.Instance.PlayerCamera.AimPoint;
+            partsLookAtAim.bodyFocus = GameManager.Instance.PlayerCamera.BodyOrientation;
 
             // Set the Initial Camera Pivot Follow Position
             playerCamera = GameManager.Instance.PlayerCamera;
@@ -117,19 +105,8 @@ namespace MyGame.Player
 
         void Update()
         {
-            horizontalAxis = Mathf.Clamp(Input.GetAxis("Horizontal"), 
-                                        (playerStatus.lowerBody.isJogSet && !playerStatus.upperBody.isAiming) ? -1.0f : -0.5f,
-                                        (playerStatus.lowerBody.isJogSet && !playerStatus.upperBody.isAiming) ? 1.0f : 0.5f);
-
-            verticalAxis = Mathf.Clamp(Input.GetAxis("Vertical"), 
-                                      (playerStatus.lowerBody.isJogSet && !playerStatus.upperBody.isAiming) ? -1.0f : -0.5f, 
-                                      (playerStatus.lowerBody.isJogSet && !playerStatus.upperBody.isAiming) ? 1.0f : 0.5f);
-
-            if (playerStatus.lowerBody.isSprinting)
-                horizontalAxis = 0f;
-
-            animator.SetFloat(SpeedXID, horizontalAxis);
-            animator.SetFloat(SpeedYID, verticalAxis);
+            animator.SetFloat(SpeedXID, playerStatus.horizontalAxis);
+            animator.SetFloat(SpeedYID, playerStatus.verticalAxis);
 
             MovePlayer();
             RotateBodytoCamera();
@@ -149,44 +126,46 @@ namespace MyGame.Player
 
         #endregion
 
-
         #region Player Movement and Animation Adjustment
 
-        void AdjustPosture()
+        private void OnAnimatorIK(int layerIndex)
         {
-
-            Vector3 relVec;
-            Quaternion lookRotation;
-
-            /* Waist */
-            if (!playerStatus.lowerBody.isSprinting)
+            if (!playerStatus.isSprinting)
             {
-                relVec = partsToFollowAim.bodyFocus.position - partsToFollowAim.spine.position;
-                lookRotation = Quaternion.LookRotation(relVec);
-                partsToFollowAim.spine.rotation = lookRotation;
-                partsToFollowAim.spine.Rotate(transform.up, WaistMakeUp);
+                animator.SetLookAtWeight(1, 1, 1, 0, 1f);
+                animator.SetLookAtPosition(partsLookAtAim.bodyFocus.position);
             }
-            else
-            {
-                partsToFollowAim.spine.Rotate(partsToFollowAim.spine.position + transform.right, 35f);
-                partsToFollowAim.spine.Rotate(partsToFollowAim.spine.position + transform.up, -20f);
-            }
-
-            /* Head */
-            relVec = partsToFollowAim.bodyFocus.position - partsToFollowAim.head.position;
-            lookRotation = Quaternion.LookRotation(relVec); 
-            partsToFollowAim.head.rotation = lookRotation;
         }
 
-        void AdjustGun()
+        private void AdjustPosture()
         {
-            if (!playerStatus.lowerBody.isSprinting && 
-                (playerStatus.upperBody.isPrimaryWeaponOut && inIdleAnimation )
-                || (playerStatus.upperBody.isSecondaryWeaponOut && playerStatus.upperBody.isAiming))
+            partsLookAtAim.spine.Rotate(currentSpineAdjustment, Space.Self);
+
+            // Waist Sprinting
+            if (!playerStatus.isSprinting)
             {
-                Vector3 relVec = partsToFollowAim.weaponFocus.position - partsToFollowAim.weaponSlot.position;
+                if (playerStatus.isAiming)
+                    currentSpineAdjustment = Vector3.Lerp(currentSpineAdjustment, postureAdjustment.spineAimAdjustment, 10f * GameTime.deltaTime);
+
+                else
+                    currentSpineAdjustment = Vector3.Lerp(currentSpineAdjustment, postureAdjustment.spineHipAdjustment, 10f * GameTime.deltaTime);
+            }
+
+            // Wasit Sprinting
+            else
+                partsLookAtAim.spine.Rotate(postureAdjustment.spineSprintAdjustment, Space.Self);
+
+            // Head
+            partsLookAtAim.head.Rotate(postureAdjustment.headAimAdjustment, Space.Self);
+        }
+
+        private void AdjustGun()
+        {
+            if (!playerStatus.isSprinting && isWeaponOut && !isWeaponFiring && !isWeaponReloading )
+            {
+                Vector3 relVec = partsLookAtAim.bodyFocus.position - partsLookAtAim.weaponSlot.position;
                 Quaternion lookRotation = Quaternion.LookRotation(relVec);
-                partsToFollowAim.weaponSlot.rotation = lookRotation;
+                partsLookAtAim.weaponSlot.rotation = lookRotation;
             }
         }
 
@@ -200,7 +179,7 @@ namespace MyGame.Player
         /* Character Movement */
         void MovePlayer()
         {
-            Vector3 move_dir = transform.forward * verticalAxis + transform.right * horizontalAxis;
+            Vector3 move_dir = transform.forward * playerStatus.verticalAxis + transform.right * playerStatus.horizontalAxis;
 
             /* Find Surface and Change Footstep */
 
@@ -212,10 +191,8 @@ namespace MyGame.Player
                 Debug.DrawLine(transform.position + charController.center, sphereHit.point, Color.blue);
             }
 
-            move_dir = Vector3.ProjectOnPlane(move_dir, sphereHit.normal) * (playerStatus.lowerBody.isSprinting ? sprintSpeed : playerStatus.lowerBody.isCrouching ? crouchSpeed : baseSpeed) * Time.deltaTime;
-
-            if (!charController.isGrounded)
-                move_dir += Physics.gravity * GravityMultiplier;
+            move_dir = Vector3.ProjectOnPlane(move_dir, sphereHit.normal) * (playerStatus.isSprinting ? sprintSpeed : playerStatus.isCrouching ? crouchSpeed : baseSpeed) * GameTime.deltaTime;
+            move_dir += Physics.gravity * GravityMultiplier;
 
             charController.Move(move_dir);
         }
@@ -236,7 +213,7 @@ namespace MyGame.Player
 
         #region Animations
 
-        public void WalkAnimation()
+        public void Walk()
         {
             animator.SetBool(CrouchID, false);
             animator.SetBool(SprintID, false);
@@ -244,7 +221,7 @@ namespace MyGame.Player
             LowerCameraPivot(1);
         }
 
-        public void CrouchAnimation()
+        public void Crouch()
         {
             animator.SetBool(CrouchID, true);
             animator.SetBool(SprintID, false);
@@ -252,7 +229,7 @@ namespace MyGame.Player
             LowerCameraPivot(2);
         }
 
-        public void SprintAnimation()
+        public void Sprint()
         {
             animator.SetBool(CrouchID, false);
             animator.SetBool(SprintID, true);
@@ -260,18 +237,19 @@ namespace MyGame.Player
             LowerCameraPivot(3);
         }
 
-        public void HolsterAnimation()
+        public void DrawWeapon()
         {
-            inIdleAnimation = false;
-            animator.SetInteger(WeaponGroupID, 0);
-            animator.SetInteger(WeaponTypeID, 0);
+            isWeaponFiring = false;
+            isWeaponReloading = false;
+            animator.SetBool(WeaponOutID, true);
         }
 
-        public void DrawAnimation(WeaponProperties properties)
+        public void HolsterWeapon()
         {
-            inIdleAnimation = false;
-            animator.SetInteger(WeaponGroupID, (int) properties.group);
-            animator.SetInteger(WeaponTypeID, (int) properties.type);
+            isWeaponOut = false;
+            isWeaponFiring = false;
+            isWeaponReloading = false;
+            animator.SetBool(WeaponOutID, false);
         }
 
         public void ShowWeapon()
@@ -284,23 +262,24 @@ namespace MyGame.Player
             weaponSlot.HideWeapon();
         }
 
-        public void IdleAnimation()
+        public void SetWeaponIdle()
         {
-            inIdleAnimation = true;
-            weaponSlot.ReleaseFireLock();
+            isWeaponOut = true;
+            isWeaponFiring = false;
+            isWeaponReloading = false;
+            weaponSlot.ReleaseAttackLock();
         }
 
-        public void AttackAnimation()
+        public void Attack()
         {
-            inIdleAnimation = false;
+            weaponSlot.Attack();
+            isWeaponFiring = true;
             animator.SetTrigger(AttackID);
-
-            weaponSlot.ToggleAttack();
         }
 
-        public void ReloadAnimation()
+        public void Reload()
         {
-            inIdleAnimation = false;
+            isWeaponReloading = true;
             animator.SetTrigger(ReloadID);
         }
 
@@ -309,9 +288,10 @@ namespace MyGame.Player
             animator.SetBool(AimID, toggle);
         }
 
-        public void ToggleJog(bool toggle)
+        public void ChangeWeaponAnimationGroup(WeaponGroup group, WeaponType type)
         {
-
+            animator.SetInteger(WeaponGroupID, (int) group);
+            animator.SetInteger(WeaponTypeID, (int) type);
         }
 
         #endregion
@@ -326,7 +306,7 @@ namespace MyGame.Player
         }
 
         [System.Serializable]
-        private class PartsToFollowAim
+        private class PartsLookAtAim
         {
             public Transform head;
             public Transform spine;
@@ -342,8 +322,15 @@ namespace MyGame.Player
             public Vector3 crouchPosition = new Vector3(0.5f, 1.35f, 0f);
             public Vector3 sprintPosition = new Vector3(0.5f, 1.6f, 0f);
         }
+
+        [System.Serializable]
+        private class PostureAdjustment
+        {
+            public Vector3 spineHipAdjustment = new Vector3(-37.5f, 0f, 0f);
+            public Vector3 spineAimAdjustment = new Vector3(-37.5f, 0f, -15f);
+            public Vector3 headAimAdjustment = new Vector3(0f, 0f, -30f);
+            public Vector3 spineSprintAdjustment = new Vector3(7.5f, 0f, -40f);
+        }
     }
-
-
 }
 

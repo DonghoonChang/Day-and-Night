@@ -4,113 +4,88 @@ using UnityEngine.Events;
 using MyGame.Player;
 using GameManager = MyGame.GameManagement.GameManager;
 using SFXManager = MyGame.GameManagement.SFXManager;
+using EnemyCharacter = MyGame.Enemy.EnemyCharacter;
 
 
 namespace MyGame.Inventory.Weapon
 {
     public abstract class Weapon : Item
     {
-        protected GameManager gameManager;
-        protected SFXManager sfxManager;
-        protected UnityEvent OnAnimationRenderingOver;
+        protected SFXManager _sfxManager;
+        protected GameManager _gameManager;
+        protected UnityEvent _OnCharacterRenderingOver;
 
-        [SerializeField]
-        protected WeaponCard weaponCard;
+        protected Dictionary<EnemyCharacter, List<HitInfo>> hitTargets = new Dictionary<EnemyCharacter, List<HitInfo>>();
 
-        [SerializeField]
-        protected Transform muzzleTip;
-
-        [SerializeField]
-        protected Transform cartridgeOutlet;
-
-        protected AudioSource AttackSound;
-
-        protected bool isAttackLocked = true;
-
-        protected Dictionary<Enemy.Enemy, List<HitInfo>> hitTargets = new Dictionary<Enemy.Enemy, List<HitInfo>>();
+        protected bool _isAttackLocked = true;
 
         #region Properties
 
-        public WeaponProperties Properties
+        // Animation
+        public abstract WeaponProperties Properties
         {
-            get
-            {
-                if (weaponCard != null)
-                    return weaponCard.properties;
-
-                else
-                    return null;
-            }
+            get;
         }
 
-        public WeaponStats Stats
+        public abstract WeaponStats Stats
         {
-            get
-            {
-                if (weaponCard != null)
-                    return weaponCard.stats;
-
-                else
-                    return null;
-            }
+            get;
         }
 
-        float AttackDelay
+        public abstract int Damage
         {
-            get
-            {
-                return 60f / Stats.fireRate;
-            }
+            get;
+        }
+
+        public abstract int FireRate
+        {
+            get;
+        }
+
+        public abstract float AttackDelay
+        {
+            get;
         }
 
         public bool IsAttackLocked
         {
             get
             {
-                return isAttackLocked;
+                return _isAttackLocked;
             }
         }
 
         #endregion
 
-
         #region Awake and Updates
 
-        protected virtual void Awake()
+        protected override void Awake()
         {
-            AttackSound = gameObject.AddComponent<AudioSource>();
-            Sound.SoundtoSource(AttackSound, weaponCard.attackSound);
+            base.Awake();
         }
 
-        protected virtual void Start()
+        protected override void Start()
         {
-            gameManager = GameManager.Instance;
-            sfxManager = SFXManager.Instance;
+            base.Start();
 
-            OnAnimationRenderingOver = gameManager.Player.GetComponent<PlayerAnimator>().OnAnimationRenderingOver;
+            _sfxManager = SFXManager.Instance;
+            _gameManager = GameManager.Instance;
+
+            _OnCharacterRenderingOver = _gameManager.Player.GetComponent<PlayerAnimator>().OnAnimationRenderingOver;
         }
 
         #endregion
 
-
         #region Main Function
 
-        public virtual void Attack()
+        protected virtual void AttackRoutine()
         {
-            OnAnimationRenderingOver.AddListener(AttackListener);
+            _isAttackLocked = true;
         }
 
-        protected virtual void AttackListener()
+        public virtual void ReleaseAttackLock()
         {
-            isAttackLocked = true;
-            Invoke("ReleaseFireLock", AttackDelay);
-            AttackSound.Play();
-        }
-
-        public virtual void ReleaseFireLock()
-        {
-            CancelInvoke("ReleaseFireLock");
-            isAttackLocked = false;
+            _isAttackLocked = false;
         }
 
         #endregion
