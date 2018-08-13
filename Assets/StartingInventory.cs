@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using MyGame.GameManagement;
-using MyGame.Inventory;
+using MyGame.Object;
 
 public class StartingInventory : MonoBehaviour {
 

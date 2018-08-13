@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 
 
-namespace MyGame.Inventory
+namespace MyGame.Object
 {
     [CreateAssetMenu(fileName = "Item", menuName = "Inventory/ConsumableCard")]
     public class ConsumableCard : ItemCard

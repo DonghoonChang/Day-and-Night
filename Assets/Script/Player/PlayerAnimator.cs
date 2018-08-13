@@ -1,126 +1,130 @@
 ﻿using UnityEngine;
 using UnityEngine.Events;
-using GameManager = MyGame.GameManagement.GameManager;
-using WeaponProperties = MyGame.Inventory.Weapon.WeaponProperties;
-using WeaponGroup = MyGame.Inventory.Weapon.WeaponGroup;
-using WeaponType = MyGame.Inventory.Weapon.WeaponType;
+using CameraManager = MyGame.GameManagement.CameraManager;
+using WeaponGroup = MyGame.Object.WeaponGroup;
+using WeaponType = MyGame.Object.WeaponType;
+using EnemyCharacter = MyGame.Enemy.EnemyCharacter;
 
 namespace MyGame.Player
 {
     public class PlayerAnimator : MonoBehaviour
     {
+        static int PushCount = 30;
+
         #region Statics Variables
+
+        static int AimID = Animator.StringToHash("Aim");
+        static int AttackID = Animator.StringToHash("Attack");
+        static int ReloadID = Animator.StringToHash("Reload");
+        static int DodgeAID = Animator.StringToHash("Dodge A");
+        static int DodgeBID = Animator.StringToHash("Dodge B");
+        static int DodgeCID = Animator.StringToHash("Dodge C");
 
         static int SpeedXID = Animator.StringToHash("SpeedX");
         static int SpeedYID = Animator.StringToHash("SpeedY");
         static int CrouchID = Animator.StringToHash("Crouch");
         static int SprintID = Animator.StringToHash("Sprint");
+
+        static int GrenadeReadyID = Animator.StringToHash("Grenade Ready");
+        static int GrenadeThrowID = Animator.StringToHash("Grenade Throw");
+
         static int WeaponOutID = Animator.StringToHash("Weapon Out");
         static int WeaponGroupID = Animator.StringToHash("Weapon Group");
         static int WeaponTypeID = Animator.StringToHash("Weapon Type");
-        static int AimID = Animator.StringToHash("Aim");
-        static int AttackID = Animator.StringToHash("Attack");
-        static int ReloadID = Animator.StringToHash("Reload");
 
-        static float objectPushForce = 2f;
-        static float GravityMultiplier = 10f;
+        static float PlayerVerticalSpeed = 1f;
+        static float PlayerHorizontalSpeed = 0.75f;
+
+        static float EnemyPlayerPushForce = 0.00025f;
 
         #endregion
 
-        public UnityEvent OnAnimationRenderingOver;
+        public UnityEvent OnPostureAdjustmentOver;
+
+        // Components
+        Animator _animator;
+        CharacterController _charController;
+        Rigidbody[] _ragdoll;
+
+        PlayerStatus _playerStatus;
+        PlayerCamera _playerCamera;
+        PlayerAudioPlayer _playerAudio;
+
+        PlayerWeaponSlot _weaponSlot;
+        PlayerGrenadeSlot _grenadeSlot;
 
         // Camera
-        [SerializeField]
-        Transform cameraPivot;
+        [SerializeField] Transform cameraPivot;
 
-        [SerializeField]
-        PivotPositions pivotPositions;
+        // Animation and Movement
+        [SerializeField] MovementSpeeds _movementSpeeds = new MovementSpeeds();
+        [SerializeField] CameraPositions _camPositions = new CameraPositions();
+        [SerializeField] PostureAdjustmentParts _adjustmentParts = new PostureAdjustmentParts();
+        [SerializeField] PostureAdjustment _postureAdjustment = new PostureAdjustment();
 
-        // Posture
-        [SerializeField]
-        PartsLookAtAim partsLookAtAim;
-
-        [SerializeField]
-        PostureAdjustment postureAdjustment;
-
-        Vector3 currentSpineAdjustment;
-
-        // Movement Speed
-        [SerializeField]
-        [Range(0.1f, 5f)]
-        float baseSpeed;
-
-        [SerializeField]
-        [Range(1f, 5f)]
-        float sprintSpeed;
-
-        [SerializeField]
-        [Range(0.1f, 5f)]
-        float crouchSpeed;
-        
-        /* Components */
-        Animator animator;
-        PlayerAudioPlayer playerAudio;
-        CharacterController charController;
-
-        PlayerStatus playerStatus;
-        PlayerCamera playerCamera;
-        PlayerWeaponSlot weaponSlot;
-
-        // Animation Status Tracking
-        public bool isWeaponOut = false; // Weapon Drawn Out (Firing or Not)
-        public bool isWeaponFiring = false; // Weapon in Firing Animation (Different from Fire Locked)
-        public bool isWeaponReloading = false; // Weapon Ready to Fire
-
-        #region Properties
-
-        #endregion
+        Vector3 _currentSpineAdjustment = new Vector3(0, 0, 0);
+        public PlayerAnimationStatus animationStatus = new PlayerAnimationStatus();
 
         #region Awake to Updates
 
         void Awake()
         {
-            animator = GetComponent<Animator>();
-            playerAudio = GetComponent<PlayerAudioPlayer>();
-            charController = GetComponent<CharacterController>();
-            playerStatus = GetComponent<PlayerCharacter>().PlayerStatus;
-            weaponSlot = GetComponentInChildren<PlayerWeaponSlot>();
+            _animator = GetComponent<Animator>();
+            _playerAudio = GetComponent<PlayerAudioPlayer>();
+            _charController = GetComponent<CharacterController>();
+            _ragdoll = GetComponentsInChildren<Rigidbody>();
 
-            partsLookAtAim.weaponSlot = weaponSlot.transform;
-            currentSpineAdjustment = postureAdjustment.spineHipAdjustment;
+            foreach (Rigidbody rb in _ragdoll)
+                rb.isKinematic = true;
 
-            weaponSlot.OnWeaponAnimationChanged.AddListener(ChangeWeaponAnimationGroup);
+            _weaponSlot = GetComponentInChildren<PlayerWeaponSlot>();
+            _grenadeSlot = GetComponentInChildren<PlayerGrenadeSlot>();
+            _playerStatus = GetComponent<PlayerCharacter>().PlayerStatus;
+
+            _adjustmentParts.weaponSlot = _weaponSlot.transform;
+            _currentSpineAdjustment = _postureAdjustment.spineHipAdjustment;
+
+            _weaponSlot.OnWeaponAnimationChanged.AddListener(ChangeWeaponAnimationGroup);
+
+            animationStatus.isHoldingNothing = true;
         }
 
         void Start()
         {
             // Set Aim Focus Points
-            partsLookAtAim.weaponFocus = GameManager.Instance.PlayerCamera.AimPoint;
-            partsLookAtAim.bodyFocus = GameManager.Instance.PlayerCamera.BodyOrientation;
+            _playerCamera = CameraManager.Instance.PlayerCamera;
+            _adjustmentParts.raycastPoint = CameraManager.Instance.PlayerCamera.AimPoint;
+            _adjustmentParts.mecanimLookAtPoint = CameraManager.Instance.PlayerCamera.MecanimLookAtPoint;
 
             // Set the Initial Camera Pivot Follow Position
-            playerCamera = GameManager.Instance.PlayerCamera;
-            cameraPivot.localPosition = pivotPositions.walkPosition;
+            cameraPivot.localPosition = _camPositions.walkPosition;
         }
 
         void Update()
         {
-            animator.SetFloat(SpeedXID, playerStatus.horizontalAxis);
-            animator.SetFloat(SpeedYID, playerStatus.verticalAxis);
+            if (!_playerStatus.isDead)
+            {
+                _animator.SetFloat(SpeedXID, _playerStatus.horizontalAxis);
+                _animator.SetFloat(SpeedYID, _playerStatus.verticalAxis);
 
-            MovePlayer();
-            RotateBodytoCamera();
+                MovePlayer();
+                RotateBodytoCamera();
+            }
         }
 
         void LateUpdate()
         {
-            AdjustPosture();
-            AdjustGun();
-
-            if (OnAnimationRenderingOver != null)
+            if (!_playerStatus.isDead)
             {
-                OnAnimationRenderingOver.Invoke();
-                OnAnimationRenderingOver.RemoveAllListeners();
+                AdjustPosture();
+                AdjustFlashlight();
+                AdjustWeaponSlot();
+
+                if (OnPostureAdjustmentOver != null)
+                {
+                    OnPostureAdjustmentOver.Invoke();
+                    OnPostureAdjustmentOver.RemoveAllListeners();
+                }
             }
         }
 
@@ -130,206 +134,358 @@ namespace MyGame.Player
 
         private void OnAnimatorIK(int layerIndex)
         {
-            if (!playerStatus.isSprinting)
+            if (!_playerStatus.isSprinting)
             {
-                animator.SetLookAtWeight(1, 1, 1, 0, 1f);
-                animator.SetLookAtPosition(partsLookAtAim.bodyFocus.position);
+                _animator.SetLookAtWeight(1f, 1f, 1f, 0, 1f);
+                _animator.SetLookAtPosition(_adjustmentParts.mecanimLookAtPoint.position);
             }
         }
 
         private void AdjustPosture()
         {
-            partsLookAtAim.spine.Rotate(currentSpineAdjustment, Space.Self);
+            _adjustmentParts.spine.Rotate(_currentSpineAdjustment, Space.Self);
 
-            // Waist Sprinting
-            if (!playerStatus.isSprinting)
+            // Waist Adjustment Not Sprinting
+            if (!_playerStatus.isSprinting)
             {
-                if (playerStatus.isAiming)
-                    currentSpineAdjustment = Vector3.Lerp(currentSpineAdjustment, postureAdjustment.spineAimAdjustment, 10f * GameTime.deltaTime);
+                if (_playerStatus.isAiming)
+                    _currentSpineAdjustment = Vector3.Lerp(_currentSpineAdjustment, _postureAdjustment.spineAimAdjustment, 10f * GameTime.deltaTime);
+
+                else if (animationStatus.isHoldingGrenade)
+                    _currentSpineAdjustment = Vector3.Lerp(_currentSpineAdjustment, _postureAdjustment.spineGrenadeAdjustment, 10f * GameTime.deltaTime);
 
                 else
-                    currentSpineAdjustment = Vector3.Lerp(currentSpineAdjustment, postureAdjustment.spineHipAdjustment, 10f * GameTime.deltaTime);
+                    _currentSpineAdjustment = Vector3.Lerp(_currentSpineAdjustment, _postureAdjustment.spineHipAdjustment, 10f * GameTime.deltaTime);
             }
 
-            // Wasit Sprinting
+            // Waist Adjustment Sprinting
             else
-                partsLookAtAim.spine.Rotate(postureAdjustment.spineSprintAdjustment, Space.Self);
+                _adjustmentParts.spine.Rotate(_postureAdjustment.spineSprintAdjustment, Space.Self);
 
             // Head
-            partsLookAtAim.head.Rotate(postureAdjustment.headAimAdjustment, Space.Self);
+            _adjustmentParts.head.Rotate(_postureAdjustment.headAimAdjustment, Space.Self);
         }
 
-        private void AdjustGun()
+        private void AdjustWeaponSlot()
         {
-            if (!playerStatus.isSprinting && isWeaponOut && !isWeaponFiring && !isWeaponReloading )
+            if (!_playerStatus.isSprinting 
+                && (animationStatus.isHoldingRangedWeaponHips || animationStatus.isHoldingRangedWeaponIronsight)
+                && !animationStatus.inAttackAnimation && !animationStatus.inReloadAnimation )
             {
-                Vector3 relVec = partsLookAtAim.bodyFocus.position - partsLookAtAim.weaponSlot.position;
+                Vector3 relVec = _adjustmentParts.mecanimLookAtPoint.position - _adjustmentParts.weaponSlot.position;
                 Quaternion lookRotation = Quaternion.LookRotation(relVec);
-                partsLookAtAim.weaponSlot.rotation = lookRotation;
+                _adjustmentParts.weaponSlot.rotation = lookRotation;
             }
         }
 
-
-        /* Make Player Face the Camera Direction AROUND y-axis */
-        void RotateBodytoCamera()
+        private void AdjustFlashlight()
         {
-            transform.eulerAngles = new Vector3(0, playerCamera.Yaw, 0);
+            Vector3 relVec = _adjustmentParts.mecanimLookAtPoint.position - _adjustmentParts.flashlight.position;
+            Quaternion lookRotation = Quaternion.LookRotation(relVec);
+            _adjustmentParts.flashlight.rotation = lookRotation;
         }
+
 
         /* Character Movement */
         void MovePlayer()
         {
-            Vector3 move_dir = transform.forward * playerStatus.verticalAxis + transform.right * playerStatus.horizontalAxis;
+            Vector3 move_dir = transform.forward * _playerStatus.verticalAxis * PlayerVerticalSpeed + transform.right * _playerStatus.horizontalAxis * PlayerHorizontalSpeed;
 
             /* Find Surface and Change Footstep */
 
             RaycastHit sphereHit;
 
-            if (Physics.SphereCast(transform.position, charController.radius, Vector3.down,
-                out sphereHit, charController.height / 2f, Physics.AllLayers, QueryTriggerInteraction.Ignore))
+            if (Physics.SphereCast(transform.position, _charController.radius, Vector3.down,
+                out sphereHit, _charController.height / 2f, Physics.AllLayers, QueryTriggerInteraction.Ignore))
             {
-                Debug.DrawLine(transform.position + charController.center, sphereHit.point, Color.blue);
+                Debug.DrawLine(transform.position + _charController.center, sphereHit.point, Color.blue);
             }
 
-            move_dir = Vector3.ProjectOnPlane(move_dir, sphereHit.normal) * (playerStatus.isSprinting ? sprintSpeed : playerStatus.isCrouching ? crouchSpeed : baseSpeed) * GameTime.deltaTime;
-            move_dir += Physics.gravity * GravityMultiplier;
+            move_dir = Vector3.ProjectOnPlane(move_dir, sphereHit.normal)
+                        * (_playerStatus.isSprinting ? _movementSpeeds.sprintSpeed : _playerStatus.isCrouching ? _movementSpeeds.crouchSpeed : _movementSpeeds.baseSpeed)
+                        * GameTime.deltaTime;
 
-            charController.Move(move_dir);
+            if (!_charController.isGrounded)
+                move_dir.y = Physics.gravity.y;
+
+            if (animationStatus.isBeingPushed >= 0)
+            {
+                move_dir.x += animationStatus.isBeingPushed * animationStatus.pushVector.x;
+                move_dir.z += animationStatus.isBeingPushed * animationStatus.pushVector.z;
+
+                animationStatus.isBeingPushed--;
+            }
+
+            _charController.Move(move_dir);
         }
 
-        void LowerCameraPivot(int location)
+        void RotateBodytoCamera()
+        {
+            transform.eulerAngles = new Vector3(0, _playerCamera.Yaw, 0);
+        }
+
+        void ChangeCameraPivotPosition(int location)
         {
             if (location == 1)
-                cameraPivot.localPosition = pivotPositions.walkPosition;
+                cameraPivot.localPosition = _camPositions.walkPosition;
 
             else if (location == 2)
-                cameraPivot.localPosition = pivotPositions.crouchPosition;
+                cameraPivot.localPosition = _camPositions.crouchPosition;
 
             else if (location == 3)
-                cameraPivot.localPosition = pivotPositions.sprintPosition;
+                cameraPivot.localPosition = _camPositions.sprintPosition;
         }
 
         #endregion
 
         #region Animations
 
-        public void Walk()
+        public void WalkAnimation()
         {
-            animator.SetBool(CrouchID, false);
-            animator.SetBool(SprintID, false);
+            _animator.SetBool(CrouchID, false);
+            _animator.SetBool(SprintID, false);
 
-            LowerCameraPivot(1);
+            ChangeCameraPivotPosition(1);
         }
 
-        public void Crouch()
+        public void CrouchAnimation()
         {
-            animator.SetBool(CrouchID, true);
-            animator.SetBool(SprintID, false);
+            _animator.SetBool(CrouchID, true);
+            _animator.SetBool(SprintID, false);
 
-            LowerCameraPivot(2);
+            ChangeCameraPivotPosition(2);
         }
 
-        public void Sprint()
+        public void SprintAnimation()
         {
-            animator.SetBool(CrouchID, false);
-            animator.SetBool(SprintID, true);
+            _animator.SetBool(CrouchID, false);
+            _animator.SetBool(SprintID, true);
 
-            LowerCameraPivot(3);
+            ChangeCameraPivotPosition(3);
         }
 
-        public void DrawWeapon()
+        public void DrawWeaponAnimation()
         {
-            isWeaponFiring = false;
-            isWeaponReloading = false;
-            animator.SetBool(WeaponOutID, true);
+            _animator.SetBool(WeaponOutID, true);
         }
 
-        public void HolsterWeapon()
+        public void HolsterWeaponAnimation()
         {
-            isWeaponOut = false;
-            isWeaponFiring = false;
-            isWeaponReloading = false;
-            animator.SetBool(WeaponOutID, false);
+            _animator.SetBool(WeaponOutID, false);
         }
 
-        public void ShowWeapon()
+        public void AttackAnimation()
         {
-            weaponSlot.ShowWeapon();
+            _animator.SetTrigger(AttackID);
         }
 
-        public void HideWeapon()
+        public void ReloadAnimation()
         {
-            weaponSlot.HideWeapon();
+            _animator.SetTrigger(ReloadID);
         }
 
-        public void SetWeaponIdle()
+        public void GrenadeAnimation(bool on)
         {
-            isWeaponOut = true;
-            isWeaponFiring = false;
-            isWeaponReloading = false;
-            weaponSlot.ReleaseAttackLock();
-        }
+            if (on)
+            {
+                _animator.SetTrigger(GrenadeReadyID);
+            }
 
-        public void Attack()
-        {
-            weaponSlot.Attack();
-            isWeaponFiring = true;
-            animator.SetTrigger(AttackID);
-        }
+            else
+            {
+                _animator.SetTrigger(GrenadeThrowID);
+            }
 
-        public void Reload()
-        {
-            isWeaponReloading = true;
-            animator.SetTrigger(ReloadID);
         }
 
         public void AimAnimation(bool toggle)
         {
-            animator.SetBool(AimID, toggle);
+            _animator.SetBool(AimID, toggle);
+        }
+
+        public void ShowWeapon()
+        {
+            _weaponSlot.ShowWeapon();
+        }
+
+        public void HideWeapon()
+        {
+            _weaponSlot.HideWeapon();
+        }
+
+        public void ShowGrenade()
+        {
+            _grenadeSlot.ShowGrenade();
+        }
+
+        public void HideGrenade()
+        {
+            _grenadeSlot.HideGrenade();
+        }
+
+        public void ThrowGrenade()
+        {
+            _grenadeSlot.ThrowGrenade(_adjustmentParts.raycastPoint);
+        }
+
+        public void SetDefaultAnimationStatus()
+        {
+            animationStatus.isHoldingNothing = false;
+            animationStatus.isHoldingGrenade = false;
+            animationStatus.isHoldingMeleeWeapon = false;
+            animationStatus.isHoldingRangedWeaponHips = false;
+            animationStatus.isHoldingRangedWeaponIronsight = false;
+
+            animationStatus.inAttackAnimation = false;
+            animationStatus.inReloadAnimation = false;
+
+            animationStatus.inDrawAnimation = false;
+            animationStatus.inHolsterAnimation = false;
+        }
+
+        public void SetStatusHoldingNothing()
+        {
+            SetDefaultAnimationStatus();
+            animationStatus.isHoldingNothing = true;
+        }
+
+        public void SetStatusHoldingGrenade()
+        {
+            SetDefaultAnimationStatus();
+            animationStatus.isHoldingGrenade = true;
+        }
+
+        public void SetStatusHoldingMeleeWeapon()
+        {
+            SetDefaultAnimationStatus();
+            animationStatus.isHoldingMeleeWeapon = true;
+        }
+
+        public void SetStatusHoldingWeaponHips()
+        {
+            SetDefaultAnimationStatus();
+            animationStatus.isHoldingRangedWeaponHips = true;
+        }
+
+        public void SetStatusHoldingWeaponIronsight()
+        {
+            SetDefaultAnimationStatus();
+            animationStatus.isHoldingRangedWeaponIronsight = true;
+        }
+
+        public void SetStatusAttackAnimation()
+        {
+            SetDefaultAnimationStatus();
+            animationStatus.inAttackAnimation = true;
+        }
+
+        public void SetStatusReloadAnimation()
+        {
+            SetDefaultAnimationStatus();
+            animationStatus.inReloadAnimation = true;
+        }
+
+        public void SetStatusDrawingWeapon()
+        {
+            SetDefaultAnimationStatus();
+            animationStatus.inDrawAnimation = true;
+        }
+
+        public void SetStatusHolsteringWeapon()
+        {
+            SetDefaultAnimationStatus();
+            animationStatus.inHolsterAnimation = true;
         }
 
         public void ChangeWeaponAnimationGroup(WeaponGroup group, WeaponType type)
         {
-            animator.SetInteger(WeaponGroupID, (int) group);
-            animator.SetInteger(WeaponTypeID, (int) type);
+            _animator.SetInteger(WeaponGroupID, (int) group);
+            _animator.SetInteger(WeaponTypeID, (int) type);
+
+            if (group == 0 || type == 0)
+                HolsterWeaponAnimation();
+
+            else
+                DrawWeaponAnimation();
         }
 
         #endregion
 
-        void OnControllerColliderHit(ControllerColliderHit hit)
+        #region On Hit or Killed
+
+        public void PushPlayer(float magnitude, Vector3 direction)
         {
-            if (hit.rigidbody != null)
-            {
-                Rigidbody rb = hit.rigidbody;
-                rb.AddForce((hit.transform.position - transform.position).normalized * objectPushForce, ForceMode.Force);
-            }
+            animationStatus.isBeingPushed = PushCount;
+            animationStatus.pushVector = direction * magnitude* EnemyPlayerPushForce;
+        }
+
+        public void OnKilled()
+        { 
+            enabled = false;
+            _animator.enabled = false;
+            _charController.enabled = false;
+
+            foreach (Rigidbody rb in _ragdoll)
+                rb.isKinematic = false;
+        }
+
+        #endregion
+
+        [System.Serializable]
+        private struct CameraPositions
+        {
+            public Vector3 walkPosition;
+            public Vector3 crouchPosition;
+            public Vector3 sprintPosition;
         }
 
         [System.Serializable]
-        private class PartsLookAtAim
+        private struct PostureAdjustmentParts
         {
             public Transform head;
             public Transform spine;
             public Transform weaponSlot;
-            public Transform bodyFocus;
-            public Transform weaponFocus;
+            public Transform flashlight;
+            public Transform raycastPoint;
+            public Transform mecanimLookAtPoint;
         }
 
         [System.Serializable]
-        private class PivotPositions
+        private struct PostureAdjustment
         {
-            public Vector3 walkPosition = new Vector3(0.5f, 1.8f, 0f);
-            public Vector3 crouchPosition = new Vector3(0.5f, 1.35f, 0f);
-            public Vector3 sprintPosition = new Vector3(0.5f, 1.6f, 0f);
+            public Vector3 headAimAdjustment;
+            public Vector3 spineHipAdjustment;
+            public Vector3 spineAimAdjustment;
+            public Vector3 spineSprintAdjustment;
+            public Vector3 spineGrenadeAdjustment;
         }
 
         [System.Serializable]
-        private class PostureAdjustment
+        private struct MovementSpeeds
         {
-            public Vector3 spineHipAdjustment = new Vector3(-37.5f, 0f, 0f);
-            public Vector3 spineAimAdjustment = new Vector3(-37.5f, 0f, -15f);
-            public Vector3 headAimAdjustment = new Vector3(0f, 0f, -30f);
-            public Vector3 spineSprintAdjustment = new Vector3(7.5f, 0f, -40f);
+            [Range(0f, 5f)] public float baseSpeed;
+            [Range(0f, 5f)] public float sprintSpeed;
+            [Range(0f, 5f)] public float crouchSpeed;
+        }
+
+        [System.Serializable]
+        public struct PlayerAnimationStatus
+        {
+            public int isBeingPushed;
+            public Vector3 pushVector;
+
+            public bool isHoldingNothing; 
+            public bool isHoldingGrenade;
+            public bool isHoldingMeleeWeapon;
+            public bool isHoldingRangedWeaponHips;
+            public bool isHoldingRangedWeaponIronsight;
+
+            public bool inDodgeAnimation;
+            public bool inAttackAnimation;
+            public bool inReloadAnimation;
+
+            public bool inDrawAnimation;
+            public bool inHolsterAnimation;
         }
     }
 }

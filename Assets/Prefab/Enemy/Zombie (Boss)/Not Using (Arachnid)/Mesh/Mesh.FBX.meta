@@ -1,0 +1,266 @@
+fileFormatVersion: 2
+guid: d8f541e0e673ede4e90f7294971c8b28
+timeCreated: 1516174795
+licenseType: Store
+ModelImporter:
+  serializedVersion: 21
+  fileIDToRecycleName:
+    100000: CATRigHub001
+    100002: CATRigHub001Bone001
+    100004: CATRigHub001Bone002
+    100006: CATRigHub001Bone002Bone001
+    100008: CATRigHub001Bone002Bone001 1
+    100010: CATRigHub001Bone002Bone001Bone001
+    100012: CATRigHub001Bone002Bone001Bone001 1
+    100014: CATRigHub001Bone003
+    100016: CATRigHub001Bone004
+    100018: CATRigHub001Bone004Bone001
+    100020: CATRigHub001Bone005
+    100022: CATRigLLeg003
+    100024: CATRigLLeg004
+    100026: CATRigLLeg005
+    100028: CATRigLLeg006
+    100030: CATRigLLeg1
+    100032: CATRigLLeg2
+    100034: CATRigLLegAnkle
+    100036: CATRigLLegAnkle001
+    100038: CATRigLLegAnkle002
+    100040: CATRigLLegPlatform
+    100042: CATRigLLegPlatform001
+    100044: CATRigLLegPlatform002
+    100046: CATRigRLeg003
+    100048: CATRigRLeg004
+    100050: CATRigRLeg005
+    100052: CATRigRLeg006
+    100054: CATRigRLeg1
+    100056: CATRigRLeg2
+    100058: CATRigRLegAnkle
+    100060: CATRigRLegAnkle001
+    100062: CATRigRLegAnkle002
+    100064: CATRigRLegPlatform
+    100066: CATRigRLegPlatform001
+    100068: CATRigRLegPlatform002
+    100070: CATRigTail1
+    100072: CATRigTail1 1
+    100074: CATRigTail1 2
+    100076: CATRigTail2
+    100078: CATRigTail2 1
+    100080: CATRigTail2 2
+    100082: CATRigTail3
+    100084: CATRigTail3 1
+    100086: CATRigTail3 2
+    100088: CATRigTail4
+    100090: CATRigTail4 1
+    100092: CATRigTail4 2
+    100094: CATRigTail5
+    100096: CATRigTail5 1
+    100098: CATRigTail5 2
+    100100: Character001
+    100102: Low_mesh
+    100104: //RootNode
+    100106: Spider001
+    100108: Spider001 1
+    100110: Spider001 2
+    100112: Spider001 3
+    100114: Spider001Hub
+    100116: Spider001LLeg11
+    100118: Spider001LLeg12
+    100120: Spider001LLeg13
+    100122: Spider001LLeg1Platform
+    100124: Spider001LLeg21
+    100126: Spider001LLeg22
+    100128: Spider001LLeg23
+    100130: Spider001LLeg2Platform
+    100132: Spider001LLeg31
+    100134: Spider001LLeg32
+    100136: Spider001LLeg33
+    100138: Spider001LLeg3Platform
+    100140: Spider001LLeg41
+    100142: Spider001LLeg42
+    100144: Spider001LLeg43
+    100146: Spider001LLeg4Platform
+    100148: Spider001RLeg11
+    100150: Spider001RLeg12
+    100152: Spider001RLeg13
+    100154: Spider001RLeg1Platform
+    100156: Spider001RLeg21
+    100158: Spider001RLeg22
+    100160: Spider001RLeg23
+    100162: Spider001RLeg2Platform
+    100164: Spider001RLeg31
+    100166: Spider001RLeg32
+    100168: Spider001RLeg33
+    100170: Spider001RLeg3Platform
+    100172: Spider001RLeg41
+    100174: Spider001RLeg42
+    100176: Spider001RLeg43
+    100178: Spider001RLeg4Platform
+    400000: CATRigHub001
+    400002: CATRigHub001Bone001
+    400004: CATRigHub001Bone002
+    400006: CATRigHub001Bone002Bone001
+    400008: CATRigHub001Bone002Bone001 1
+    400010: CATRigHub001Bone002Bone001Bone001
+    400012: CATRigHub001Bone002Bone001Bone001 1
+    400014: CATRigHub001Bone003
+    400016: CATRigHub001Bone004
+    400018: CATRigHub001Bone004Bone001
+    400020: CATRigHub001Bone005
+    400022: CATRigLLeg003
+    400024: CATRigLLeg004
+    400026: CATRigLLeg005
+    400028: CATRigLLeg006
+    400030: CATRigLLeg1
+    400032: CATRigLLeg2
+    400034: CATRigLLegAnkle
+    400036: CATRigLLegAnkle001
+    400038: CATRigLLegAnkle002
+    400040: CATRigLLegPlatform
+    400042: CATRigLLegPlatform001
+    400044: CATRigLLegPlatform002
+    400046: CATRigRLeg003
+    400048: CATRigRLeg004
+    400050: CATRigRLeg005
+    400052: CATRigRLeg006
+    400054: CATRigRLeg1
+    400056: CATRigRLeg2
+    400058: CATRigRLegAnkle
+    400060: CATRigRLegAnkle001
+    400062: CATRigRLegAnkle002
+    400064: CATRigRLegPlatform
+    400066: CATRigRLegPlatform001
+    400068: CATRigRLegPlatform002
+    400070: CATRigTail1
+    400072: CATRigTail1 1
+    400074: CATRigTail1 2
+    400076: CATRigTail2
+    400078: CATRigTail2 1
+    400080: CATRigTail2 2
+    400082: CATRigTail3
+    400084: CATRigTail3 1
+    400086: CATRigTail3 2
+    400088: CATRigTail4
+    400090: CATRigTail4 1
+    400092: CATRigTail4 2
+    400094: CATRigTail5
+    400096: CATRigTail5 1
+    400098: CATRigTail5 2
+    400100: Character001
+    400102: Low_mesh
+    400104: //RootNode
+    400106: Spider001
+    400108: Spider001 1
+    400110: Spider001 2
+    400112: Spider001 3
+    400114: Spider001Hub
+    400116: Spider001LLeg11
+    400118: Spider001LLeg12
+    400120: Spider001LLeg13
+    400122: Spider001LLeg1Platform
+    400124: Spider001LLeg21
+    400126: Spider001LLeg22
+    400128: Spider001LLeg23
+    400130: Spider001LLeg2Platform
+    400132: Spider001LLeg31
+    400134: Spider001LLeg32
+    400136: Spider001LLeg33
+    400138: Spider001LLeg3Platform
+    400140: Spider001LLeg41
+    400142: Spider001LLeg42
+    400144: Spider001LLeg43
+    400146: Spider001LLeg4Platform
+    400148: Spider001RLeg11
+    400150: Spider001RLeg12
+    400152: Spider001RLeg13
+    400154: Spider001RLeg1Platform
+    400156: Spider001RLeg21
+    400158: Spider001RLeg22
+    400160: Spider001RLeg23
+    400162: Spider001RLeg2Platform
+    400164: Spider001RLeg31
+    400166: Spider001RLeg32
+    400168: Spider001RLeg33
+    400170: Spider001RLeg3Platform
+    400172: Spider001RLeg41
+    400174: Spider001RLeg42
+    400176: Spider001RLeg43
+    400178: Spider001RLeg4Platform
+    4300000: Low_mesh
+    7400000: Take 001
+    9500000: //RootNode
+    13700000: Low_mesh
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

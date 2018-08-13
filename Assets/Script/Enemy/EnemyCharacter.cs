@@ -1,145 +1,116 @@
-﻿  using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Events;
-using GameManager = MyGame.GameManagement.GameManager;
-using RayCastLayers = MyGame.GameManagement.RayCastLayers;
-using WeaponStats = MyGame.Inventory.Weapon.WeaponStats;
-using HitInfo = MyGame.Inventory.Weapon.HitInfo;
+using MyGame.Interface.ITakeHit;
 using Behavior = MyGame.Enemy.EnemyBehavior;
 using UIFloatingStats = MyGame.UI.UIFloatingStats;
 using EnemyXrayRenderer = MyGame.VFX.EnemyXrayRenderer;
-
+using GameManager = MyGame.GameManagement.GameManager;
+using RaycastLayers = MyGame.GameManagement.RaycastLayers;
 
 namespace MyGame.Enemy
 {
     [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(NavMeshAgent))]
+    [RequireComponent(typeof(SphereCollider))]
     [RequireComponent(typeof(EnemyAnimator))]
+    [RequireComponent(typeof(EnemyInventory))]
     [RequireComponent(typeof(EnemyAudioPlayer))]
     [RequireComponent(typeof(EnemyRagdollMapperRoot))]
-    [RequireComponent(typeof(SphereCollider))]
-    public class EnemyCharacter : MonoBehaviour
+    public class EnemyCharacter : MonoBehaviour, ITakeHit
     {
 
         #region Static Variables
 
-        static float ChaseAlertLevelThreshold = 20f;
-        static float SearchAlertLevelThreshold = 10f;
+        static float MaxAlertLevel = 50f;
+        static float AlertLevelCool = 2.5f;
+
         static float WatchAlertLevelThreshold = 4f;
-        static float MaxAlertLevel = 30f;
-        static float AlertLevelCool = 1f;
+        static float SearchAlertLevelThreshold = 10f;
+        static float ChaseAlertLevelThreshold = 20f;
+
+        static float TargetInFOVAlertMultiplier = 5f;
+        static float AlertIncrementPerDamage = 1f / 5f;
 
         #endregion
 
         GameManager _gameManager;
+        UIFloatingStats _statsUI;
+        EnemyXrayRenderer[] _alertnessRenderers;
 
         EnemyAnimator _animator;
-        EnemyXrayRenderer[] _alertnessRenderers;
-        UIFloatingStats _statsUI;
+        EnemyInventory _inventory;
 
         [SerializeField]
-        EnemyStatsCard enemyCard;
+        EnemyStatsCard _enemyCard;
 
-        // Status
-        float _maxHealth;
-        float _prevHealth;
-        float _currentHealth;
+        EnemyStats _stats;
+        EnemyAlertness _alertness;
 
-        float _staggerHealth;
-        float _criticalHealth;
-        float _nearDeathHealth;
-        float _staggerConcussion;
-
-        float _exp;
-        float _damage;
-        float _defense;
-
-        [SerializeField]
-        Transform target;
-
-        [SerializeField]
-        Behavior currentBehavior = Behavior.Idle;
-
-        // Behavior
-        [SerializeField]
         SphereCollider _alertTrigger;
         float _defaultTriggerRadius;
         float _currentTriggerRadius;
 
-        [SerializeField]
-        float _currentAlertLevel = 0f;
-        float _prevAlertLevel = 0f;
-        bool _targetNearby = false;
+        float _maxHealth;
+        float _prevHealth;
+        float _currentHealth;
+
+        [SerializeField] bool _targetInFOV = false;
+        [SerializeField] bool _targetNearby = false;
 
         [SerializeField]
-        EnemyStatus status;
+        float _prevAlertLevel = 0f;
+        float _currentAlertLevel = 0f;
+        float _damageThisFrame = 0f;
+
+        public Transform target;
+        public Behavior currentBehavior = Behavior.Idle;
+        public EnemyStatus status = new EnemyStatus();
 
         #region Behaviors and Events
 
-        [SerializeField]
-        UnityEvent StartBehavior;
+        [SerializeField] UnityEvent StartBehavior;
+        [SerializeField] UnityEvent IdleBehavior;
+        [SerializeField] UnityEvent WatchBehavior;
+        [SerializeField] UnityEvent SearchBehavior;
+        [SerializeField] UnityEvent ChaseBehavior;
 
-        [SerializeField]
-        UnityEvent IdleBehavior;
+        [SerializeField] UnityEvent OnPlayerFirstSeenEvent;
+        [SerializeField] UnityEvent OnPlayerLostEvent;
+        bool _playerFirstSeenEventTriggered = false;
 
-        [SerializeField]
-        UnityEvent WatchBehavior;
+        [SerializeField] UnityEvent FirstHitEvent;
+        [SerializeField] UnityEvent EveryHitEvent;
 
-        [SerializeField]
-        UnityEvent SearchBehavior;
-
-        [SerializeField]
-        UnityEvent ChaseBehavior;
-
-
-        [SerializeField]
-        UnityEvent PlayerFirstSeenEvent;
-        bool playerFirstSeenBehaviorTriggered = false;
-
-        [SerializeField]
-        UnityEvent PlayerLostEvent;
-
-
-        [SerializeField]
-        UnityEvent FirstHitEvent;
-
-        [SerializeField]
-        UnityEvent EveryHitEvent;
-
-
-        [SerializeField]
-        UnityEvent CriticalHealthEvent;
-
-        [SerializeField]
-        UnityEvent NearDeathEvent;
-
-        [SerializeField]
-        UnityEvent DeathEvent;
+        [SerializeField] UnityEvent CriticalHealthEvent;
+        [SerializeField] UnityEvent NearDeathEvent;
+        [SerializeField] UnityEvent DeathEvent;
 
         #endregion
 
         #region Properties
 
-        public float FieldOfView
+        public float Damage
         {
             get
             {
-                return enemyCard.alertness.fieldOfView;
-            }
-        }
-        public float ChaseDistanceStart
-        {
-            get
-            {
-                return enemyCard.alertness.chaseStartDistance;
+                return _stats.damage;
             }
         }
 
-        public float ChaseDistanceStop
+        public float FieldOfViewAngle
         {
             get
             {
-                return enemyCard.alertness.chaseStopDistance;
+                return _enemyCard.alertness.fieldOfViewAngle;
+            }
+        }
+
+        public float FieldOfViewDistance
+        {
+            get
+            {
+                return _enemyCard.alertness.fieldOfViewDistance;
             }
         }
 
@@ -157,44 +128,35 @@ namespace MyGame.Enemy
 
         void Awake()
         {
-            // Components
-            _animator = GetComponent<EnemyAnimator>();
-            _alertTrigger = GetComponent<SphereCollider>();
-            _alertnessRenderers = GetComponentsInChildren<EnemyXrayRenderer>();
             _statsUI = GetComponentInChildren<UIFloatingStats>();
+            _alertnessRenderers = GetComponentsInChildren<EnemyXrayRenderer>();
 
-            // Stats
-            _maxHealth = enemyCard.stats.health;
-            _currentHealth = _maxHealth;
-            _prevHealth = _maxHealth;
+            _animator = GetComponent<EnemyAnimator>();
+            _inventory = GetComponent<EnemyInventory>();
+            _alertTrigger = GetComponent<SphereCollider>();
 
-            _staggerHealth = _maxHealth * enemyCard.stats.staggerHealthMultiplier;
-            _criticalHealth = _maxHealth * enemyCard.stats.criticalHealthMultiplier;
-            _nearDeathHealth = _maxHealth * enemyCard.stats.nearDeathHealthMultiplier;
-            _staggerConcussion = enemyCard.stats.staggerConcussionThreshold;
+            _stats = _enemyCard.stats;
+            _alertness = _enemyCard.alertness;
+            _currentHealth = _prevHealth = _maxHealth = _stats.health;
 
-            _exp = enemyCard.stats.exp;
-            _damage = enemyCard.stats.damage;
-            _defense = enemyCard.stats.defense;
-
-            // Alert Trigger
             _alertTrigger.isTrigger = true;
-            SetTriggerRadious(enemyCard.alertness.alterTriggerRadius);
+            SetTriggerRadious(_alertness.alertTriggerRadius);
             AdjustTriggerRadious(1f);
 
-            //UI
             if (_statsUI != null)
                 _statsUI.SetTargetFill(1f);
+
         }
 
         void Start()
         {
             _gameManager = GameManager.Instance;
+            _gameManager.AddEnemy(this);
 
             if (target == null)
             {
-                SetBehaviorTarget(_gameManager.Player.transform);
-                SetTargetLastSeen(_gameManager.PlayerPosition);
+                SetBehaviorTarget(GameManager.Instance.Player.transform);
+                SetTargetLastSeen(GameManager.Instance.Player.transform.position);
             }
 
             else
@@ -215,18 +177,25 @@ namespace MyGame.Enemy
         {
             if (currentBehavior != Behavior.Dead)
             {
-                if (_targetNearby)
+                _targetInFOV = TargetInFOV(_alertness.fieldOfViewAngle, _alertness.fieldOfViewDistance);
+
+                if (_targetInFOV
+                    && !_playerFirstSeenEventTriggered
+                    && OnPlayerFirstSeenEvent != null)
                 {
-                    _prevAlertLevel = _currentAlertLevel;
-                    _currentAlertLevel += GetAlertIncrement();
+                    _playerFirstSeenEventTriggered = true;
+                    OnPlayerFirstSeenEvent.Invoke();
                 }
+
+                _prevAlertLevel = _currentAlertLevel;
+
+                if (_targetNearby)
+                    _currentAlertLevel = Mathf.Min(_currentAlertLevel + GetAlertIncrement(), MaxAlertLevel);
 
                 else
-                {
-                    _prevAlertLevel = _currentAlertLevel;
-                    _currentAlertLevel = Mathf.Clamp(_currentAlertLevel - GameTime.deltaTime * AlertLevelCool, 0, MaxAlertLevel);
-                }
+                    _currentAlertLevel = Mathf.Clamp(_currentAlertLevel - GameTime.deltaTime * AlertLevelCool + GetAlertIncrement(), 0, MaxAlertLevel);
 
+                _damageThisFrame = 0;
 
                 // Alert Level On the Rise
                 if (_prevAlertLevel < _currentAlertLevel)
@@ -290,14 +259,9 @@ namespace MyGame.Enemy
 
         #region Trigger Behaviors
 
-        public void Roar()
+        public void Roar(int intensity)
         {
-
-        }
-
-        public void FakeDeath()
-        {
-
+            _animator.Roar(intensity);
         }
 
         public void RunAway()
@@ -305,40 +269,57 @@ namespace MyGame.Enemy
             status.isRunningAway = true;
         }
 
-        #endregion
-
-        public void OnHit(HitInfo[] hitInfos, WeaponStats stats) {
+        public void OnHit(Transform[] transformList, Vector3[] normalList, float damage, float concussion, bool applyDamageOnce)
+        {
+            if (transformList.Length != normalList.Length)
+                return;
 
             if (currentBehavior == Behavior.Dead)
             {
-                _animator.OnHit(hitInfos, stats, false);
+                _animator.OnHit(transformList, normalList, false);
                 return;
             }
 
-            float collectiveDamage = 0;
+            float totalDamage = 0f;
 
-            foreach (HitInfo hitInfo in hitInfos)
+            if (applyDamageOnce)
+                totalDamage = damage;
+
+            else
             {
-                bool headshot = hitInfo.hit.transform.name.ToLower().Contains("head");
-                int multipliedDamage = headshot ? Mathf.FloorToInt(stats.damage * enemyCard.stats.headshotMultiplier) : stats.damage;
-                collectiveDamage += multipliedDamage;
+                foreach (Transform tf in transformList)
+                {
+                    // bool headshot = hitInfo.hit.transform.name.ToLower().Contains("head");
+                    // int damage = headshot ? Mathf.FloorToInt(stats.damagePerPellet * _enemyCard.stats.headshotMultiplier) : stats.damagePerPellet;
+                    totalDamage += damage;
+                }
             }
 
             _prevHealth = _currentHealth;
-            _currentHealth -= collectiveDamage;
+            _currentHealth = Mathf.Max(0, _currentHealth - totalDamage);
+            _damageThisFrame += totalDamage;
 
-            bool staggerTriggered = collectiveDamage > _staggerHealth || hitInfos.Length * stats.concussion > _staggerConcussion;
-            bool isDead = _currentHealth <= 0;
+            bool staggered = totalDamage > _maxHealth * _stats.staggerHealthMultiplier 
+                             || transformList.Length * concussion > _stats.staggerConcussionThreshold;
 
-            if(_statsUI != null)
+            _animator.OnHit(transformList, normalList, staggered);
+
+            if (_statsUI != null)
                 _statsUI.SetTargetFill(_currentHealth / _maxHealth);
 
 
-            if (isDead)
+            // Health Based Events
+            if (_currentHealth == 0)
             {
-                _alertTrigger.enabled = false;
                 SetCurrentBehavior(Behavior.Dead);
-                _animator.OnKilled(hitInfos, stats);
+
+                _animator.OnKilled();
+                _gameManager.RemoveEnemy(this);
+
+                _alertTrigger.enabled = false;
+
+                if (_inventory != null)
+                    _inventory.DropLoots();
 
                 if (DeathEvent != null)
                     DeathEvent.Invoke();
@@ -352,13 +333,13 @@ namespace MyGame.Enemy
                         FirstHitEvent.Invoke();
                 }
 
-                else if (_currentHealth < _criticalHealth && _criticalHealth <= _prevHealth)
+                else if (_currentHealth < _maxHealth * _stats.criticalHealthMultiplier && _maxHealth * _stats.criticalHealthMultiplier <= _prevHealth)
                 {
                     if (CriticalHealthEvent != null)
                         CriticalHealthEvent.Invoke();
                 }
 
-                else if (_currentHealth < _nearDeathHealth && _nearDeathHealth <= _prevHealth)
+                else if (_currentHealth < _maxHealth * _stats.nearDeathHealthMultiplier && _maxHealth * _stats.nearDeathHealthMultiplier <= _prevHealth)
                 {
                     if (NearDeathEvent != null)
                         NearDeathEvent.Invoke();
@@ -369,10 +350,10 @@ namespace MyGame.Enemy
                     if (EveryHitEvent != null)
                         EveryHitEvent.Invoke();
                 }
-
-                _animator.OnHit(hitInfos, stats, staggerTriggered);
             }
         }
+
+        #endregion
 
         #region Alert Trigger
 
@@ -389,6 +370,9 @@ namespace MyGame.Enemy
 
         private void OnTriggerEnter(Collider other)
         {
+            if (other.isTrigger)
+                return;
+
             if (other.transform != target)
                 return;
 
@@ -397,6 +381,9 @@ namespace MyGame.Enemy
 
         private void OnTriggerStay(Collider other)
         {
+            if (other.isTrigger)
+                return;
+
             if (other.transform != target)
                 return;
 
@@ -405,6 +392,9 @@ namespace MyGame.Enemy
 
         private void OnTriggerExit(Collider other)
         {
+            if (other.isTrigger)
+                return;
+
             if (other.transform != target)
                 return;
 
@@ -415,7 +405,7 @@ namespace MyGame.Enemy
 
         #region Helpers (Behaivor)
 
-        bool TargetInSight(float fovAngle, float fovDistance)
+        bool TargetInFOV(float fovAngle, float fovDistance)
         {
             Vector3 targetPosition = target.position;
 
@@ -427,7 +417,7 @@ namespace MyGame.Enemy
             bool sight = false;
             RaycastHit hit;
 
-            if (Physics.Raycast(ray, out hit, fovDistance * 1.1f, ~(RayCastLayers.IgnoreRaycastLayer + RayCastLayers.EnemyLayer)))
+            if (Physics.Raycast(ray, out hit, fovDistance * 1.1f, ~(RaycastLayers.IgnoreRaycastLayer + RaycastLayers.EnemyLayer)))
             {
                 Debug.DrawLine(transform.position + transform.up, hit.point, Color.red);
 
@@ -440,7 +430,11 @@ namespace MyGame.Enemy
 
         float GetAlertIncrement()
         {
-            return (GetTriggerRadiusWorldSpace() / Vector3.Distance(transform.position, target.position)) * enemyCard.alertness.noiseSensitivity * GameTime.deltaTime;
+            return (_currentTriggerRadius / Vector3.Distance(transform.position, target.position)) // How Close
+                   * (_targetInFOV ? TargetInFOVAlertMultiplier : 1f) // Target In FOV
+                   * _enemyCard.alertness.noiseSensitivity // How Sensitive to Noise
+                   * GameTime.deltaTime
+                   + _damageThisFrame * AlertIncrementPerDamage;
         }
 
         private void SetTriggerRadious(float radius)
@@ -476,13 +470,13 @@ namespace MyGame.Enemy
     }
 
     [System.Serializable]
-    public class EnemyStatus
+    public struct EnemyStatus
     {
-        public bool isRaged = false;
-        public bool isRunningAway = false;
-        public bool isUndisturbable = false;
-        public bool isInvincible = false;
-        public bool isCrawling = false;
+        public bool isRaged;
+        public bool isCrawling;
+        public bool isRunningAway;
+        public bool isUndisturbable;
+        public bool isInvincible;
     }
 
     public enum EnemyBehavior: int

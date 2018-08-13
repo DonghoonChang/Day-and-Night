@@ -17,9 +17,8 @@ public class UIHUDCrosshair : MonoBehaviour {
     public RectTransform crosshairLeft;
     public RectTransform crosshairRight;
 
-    [SerializeField]
-    private float actualSpread = 0f;
-    private float visualSpread = 0f;
+    private float _targetSpread = 0f;
+    private float _visualSpread = 0f;
 
     #region Awake to Update
 
@@ -30,15 +29,15 @@ public class UIHUDCrosshair : MonoBehaviour {
 
     private void Update()
     {
-        visualSpread = Mathf.Lerp(visualSpread, actualSpread, Mathf.Abs(visualSpread - actualSpread) * distanceFollow * Time.deltaTime);
-        AdjustCrosshair(GetDislocation(visualSpread));
+        _visualSpread = Mathf.Lerp(_visualSpread, _targetSpread, Mathf.Abs(_visualSpread - _targetSpread) * distanceFollow * Time.deltaTime);
+        AdjustCrosshair(GetDislocation(_visualSpread));
     }
 
     #endregion
 
     public void SetCurrentSpread(float spread)
     {
-        actualSpread = Mathf.Max(spread, 0);
+        _targetSpread = Mathf.Max(spread, 0);
     }
 
     private float GetDislocation(float spread)

@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using VFXManager = MyGame.GameManagement.VFXManager;
 
 namespace MyGame.VFX
 {
@@ -6,12 +7,12 @@ namespace MyGame.VFX
     {
         VFXManager _vfxManager;
 
-        public void ShowXray()
+        public void StartShine()
         {
             gameObject.SetActive(true);
         }
 
-        public void HideXray()
+        public void StopShine()
         {
             gameObject.SetActive(false);
         }

@@ -1,31 +1,34 @@
 ﻿using UnityEngine;
 using UnityEngine.Events;
-using MyGame.Inventory.Weapon;
+using MyGame.Object;
 using GameManager = MyGame.GameManagement.GameManager;
 
 namespace MyGame.Player
 {
     public class PlayerWeaponSlot : MonoBehaviour
     {
-        // Events
         public class WeaponAnimationEvent : UnityEvent<WeaponGroup, WeaponType> { }
-        public WeaponAnimationEvent OnWeaponAnimationChanged = new WeaponAnimationEvent();
+
+        [HideInInspector]
         public UnityEvent OnWeaponAttack = new UnityEvent();
 
-        static float spreadDecrement = 0.5f;
+        [HideInInspector]
+        public WeaponAnimationEvent OnWeaponAnimationChanged = new WeaponAnimationEvent();
 
-        Weapon _currentWeapon;
-
+        [SerializeField]
+        PlayerWeapon _weapon;
         PlayerStatus _playerStatus;
+
         float _currentSpread = 0;
+        float spreadDecrement = 0.75f;
 
         #region Properties
 
-        public Weapon Weapon
+        public PlayerWeapon Weapon
         {
             get
             {
-                return _currentWeapon;
+                return _weapon;
             }
 
             set
@@ -33,9 +36,9 @@ namespace MyGame.Player
                 if (value != null)
                 {
                     // From null To non-null
-                    if (_currentWeapon == null)
+                    if (_weapon == null)
                     {
-                        _currentWeapon = value;
+                        _weapon = value;
 
                         if (OnWeaponAnimationChanged != null)
                             OnWeaponAnimationChanged.Invoke(value.Properties.weaponGroup, value.Properties.weaponType);
@@ -44,7 +47,7 @@ namespace MyGame.Player
                     // Fron non-null To non-null
                     else
                     {
-                        WeaponProperties prevProperties = _currentWeapon.Properties;
+                        WeaponProperties prevProperties = _weapon.Properties;
                         WeaponGroup prevGroup = prevProperties.weaponGroup;
                         WeaponType prevtype = prevProperties.weaponType;
 
@@ -52,7 +55,7 @@ namespace MyGame.Player
                         WeaponGroup newGroup = newProperties.weaponGroup;
                         WeaponType newType = newProperties.weaponType;
 
-                        _currentWeapon = value;
+                        _weapon = value;
 
                         if (prevGroup == newGroup && prevtype == newType)
                             return;
@@ -68,9 +71,9 @@ namespace MyGame.Player
                 else
                 {
                     // From non-null To null
-                    if (_currentWeapon != null)
+                    if (_weapon != null)
                     {
-                        _currentWeapon = value;
+                        _weapon = value;
 
                         if (OnWeaponAnimationChanged != null)
                             OnWeaponAnimationChanged.Invoke(0, 0);
@@ -87,43 +90,74 @@ namespace MyGame.Player
             }
         }
 
-        public WeaponProperties Properties
-        {
-            get
-            {
-                if (Weapon != null)
-                    return _currentWeapon.Properties;
-
-                else
-                    return null;
-            }
-        }
-
         public WeaponStats Stats
         {
             get
             {
-                if (Weapon != null)
-                    return _currentWeapon.Stats;
+                return _weapon.Stats;
+            }
+        }
+
+        public WeaponProperties Properties
+        {
+            get
+            {
+                return _weapon.Properties;
+            }
+        }
+
+        public int CurrentAmmo
+        {
+            get
+            {
+                if (_weapon == null)
+                    return -1;
 
                 else
-                    return null;
+                {
+                    if (_weapon is RangedWeapon)
+                        return ((RangedWeapon)_weapon).CurrentAmmo;
+
+                    else
+                        return -1;
+                }
             }
         }
 
-        public WeaponGroup Group
+        public bool IsAutomatic
         {
             get
             {
-                return Properties.weaponGroup;
+                if (_weapon == null)
+                    return false;
+
+                else
+                {
+                    if (_weapon is RangedWeapon)
+                        return ((RangedWeapon)_weapon).IsAutomatic;
+
+                    else
+                        return false;
+                }
             }
         }
 
-        public bool isWeaponActive
+        public bool IsAttackLocked
         {
             get
             {
-                return Weapon.gameObject.activeSelf;
+                if (_weapon == null)
+                    return true;
+
+                else return _weapon.AttackLocked;
+            }
+        }
+
+        public float FireDelay
+        {
+            get
+            {
+                return 60f / Stats.rateOfFire;
             }
         }
 
@@ -131,7 +165,7 @@ namespace MyGame.Player
         {
             get
             {
-                if (_currentWeapon != null)
+                if (_weapon != null)
                 {
                     float value = _currentSpread;
                     value *= _playerStatus.isAiming ? .5f : 1f;
@@ -147,14 +181,6 @@ namespace MyGame.Player
             }
         }
 
-        public float FireDelay
-        {
-            get
-            {
-                return 60f / Stats.fireRate;
-            }
-        }
-
         #endregion
 
         #region Awake and Start
@@ -166,10 +192,10 @@ namespace MyGame.Player
 
         void Update()
         {
-            if (_currentWeapon != null)
+            if (_weapon != null)
             {
-                if (_currentWeapon.Properties.weaponGroup == WeaponGroup.Main
-                    || _currentWeapon.Properties.weaponGroup == WeaponGroup.Secondary)
+                if (_weapon.Properties.weaponGroup == WeaponGroup.Main
+                    || _weapon.Properties.weaponGroup == WeaponGroup.Secondary)
                 {
 
                     RangedWeapon rangedWeapon = Weapon as RangedWeapon;
@@ -200,63 +226,65 @@ namespace MyGame.Player
 
         #region Main Functions
 
-        public void Attack()
+        /// <summary>
+        /// Attempts use the current weapon to attack/fire
+        /// </summary>
+        /// <returns>bool: true, if the attempted attack was successful(bullets fired for ranged weapons)</returns>
+        public bool Attack()
         {
-            if (_currentWeapon.Properties.weaponGroup == WeaponGroup.Main || _currentWeapon.Properties.weaponGroup == WeaponGroup.Secondary)
+            if (_weapon.Properties.weaponGroup == WeaponGroup.Main 
+                || _weapon.Properties.weaponGroup == WeaponGroup.Secondary)
             {
-                RangedWeapon weapon = _currentWeapon as RangedWeapon;
+                RangedWeapon weapon = _weapon as RangedWeapon;
 
-                _currentSpread += weapon.SpreadStep;
-                weapon.Attack(CurrentSpread, weapon.CurrentAmmo == 0);
+                if (weapon.CurrentAmmo == 0)
+                {
+                    weapon.Attack(CurrentSpread, true);
+                    return false;
+                }
+
+                else
+                {
+                    weapon.Attack(CurrentSpread, false);
+                    _currentSpread += weapon.SpreadStep;
+
+                    if (OnWeaponAttack != null)
+                        OnWeaponAttack.Invoke();
+
+                    return true;
+                }
             }
 
             else
             {
-                MeleeWeapon weapon = _currentWeapon as MeleeWeapon;
+                MeleeWeapon weapon = _weapon as MeleeWeapon;
                 weapon.Attack();
+                return true;
             }
-
-            if (OnWeaponAttack != null)
-                OnWeaponAttack.Invoke();
         }
 
         public void ShowWeapon()
         {
-            if (_currentWeapon != null)
-            {
-                _currentWeapon.gameObject.SetActive(true);
-            }
+            if (_weapon == null)
+                return;
 
-            else
-            {
-                Debug.Log("Trying to Show Weapon Not Equipped");
-            }
+            _weapon.gameObject.SetActive(true);
         }
 
         public void HideWeapon()
         {
-            if (_currentWeapon != null)
-            {
-                _currentWeapon.gameObject.SetActive(false);
-            }
+            if (_weapon == null)
+                return;
 
-            else
-            {
-                Debug.Log("Trying to Hide Weapon Not Equipped");
-            }
+            _weapon.gameObject.SetActive(false);
         }
 
         public void ReleaseAttackLock()
         {
-            if (_currentWeapon != null)
-            {
-                _currentWeapon.ReleaseAttackLock();
-            }
+            if (_weapon == null)
+                return;
 
-            else
-            {
-                Debug.Log("Trying to Release Fire Lock on Null Weapon");
-            }
+            _weapon.ReleaseAttackLock();
         }
 
         #endregion

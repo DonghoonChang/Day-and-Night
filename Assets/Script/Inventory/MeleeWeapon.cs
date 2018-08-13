@@ -1,45 +1,30 @@
 ﻿using UnityEngine;
 
-namespace MyGame.Inventory.Weapon
+namespace MyGame.Object
 {
-    public class MeleeWeapon : Weapon
+    public class MeleeWeapon : PlayerWeapon
     {
         [SerializeField]
         MeleeWeaponCard weaponCard;
 
+        WeaponStats _stats;
+        WeaponProperties _props;
+
         #region Properties
-
-        // Animation
-        public override WeaponProperties Properties
-        {
-            get
-            {
-                if (weaponCard != null)
-                    return weaponCard.properties;
-
-                else
-                    return null;
-            }
-        }
 
         public override WeaponStats Stats
         {
             get
             {
-                if (weaponCard != null)
-                    return weaponCard.stats;
-
-                else
-                    return null;
+                return _stats;
             }
         }
 
-        // UI + Game Logic
-        public override Sprite Icon
+        public override WeaponProperties Properties
         {
             get
             {
-                return weaponCard.icon;
+                return _props;
             }
         }
 
@@ -59,19 +44,19 @@ namespace MyGame.Inventory.Weapon
             }
         }
 
-        public override int Damage
+        public override int DamagaPerPellet
         {
             get
             {
-                return weaponCard.stats.damage;
+                return weaponCard.stats.damagePerPellet;
             }
         }
 
-        public override int FireRate
+        public override int RateOfFire
         {
             get
             {
-                return weaponCard.stats.fireRate;
+                return weaponCard.stats.rateOfFire;
             }
         }
 
@@ -79,11 +64,23 @@ namespace MyGame.Inventory.Weapon
         {
             get
             {
-                return 60f / Stats.fireRate;
+                return 60f / Stats.rateOfFire;
             }
         }
 
         #endregion
+
+        protected override void Awake()
+        {
+            base.Awake();
+
+
+        }
+
+        protected override void Start()
+        {
+            base.Start();
+        }
 
         public void Attack()
         {

@@ -1,28 +1,27 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-using MyGame.Player;
+using PlayerCharacter = MyGame.Player.PlayerCharacter;
+using PlayerStatus = MyGame.Player.PlayerStatus;
+using EnemyCharacter = MyGame.Enemy.EnemyCharacter;
 
 namespace MyGame.GameManagement
 {
     public class GameManager : MonoBehaviour
     {
         [SerializeField]
-        PlayerCharacter player;
+        PlayerCharacter _player;
 
         [SerializeField]
-        PlayerCamera playerCamera;
+        GameConfiguration _gameConfig;
 
         [SerializeField]
-        GameConfiguration gameConfig;
+        MouseConfiguration _mouseConfig;
 
         [SerializeField]
-        GraphicsConfiguration graphicsConfig;
+        GraphicsConfiguration _graphicsConfig;
 
         [SerializeField]
-        MouseConfiguration mouseConfig;
-
-        [SerializeField]
-        List<SpawnPoint> spawnPoints = new List<SpawnPoint>();
+        List<EnemyCharacter> _enemies= new List<EnemyCharacter>();
 
         #region Properties
 
@@ -31,19 +30,27 @@ namespace MyGame.GameManagement
             get; private set;
         }
 
+        public PlayerCharacter Player
+        {
+            get
+            {
+                return _player;
+            }
+        }
+
+        public PlayerStatus PlayerStatus
+        {
+            get
+            {
+                return Player.PlayerStatus;
+            }
+        }
+
         public GameConfiguration GameConfiguration
         {
             get
             {
-                return gameConfig;
-            }
-        }
-
-        public GraphicsConfiguration GraphicsConfiguration
-        {
-            get
-            {
-                return graphicsConfig;
+                return _gameConfig;
             }
         }
 
@@ -51,31 +58,42 @@ namespace MyGame.GameManagement
         {
             get
             {
-                return mouseConfig;
+                return _mouseConfig;
             }
         }
 
-        public PlayerCharacter Player
+        public GraphicsConfiguration GraphicsConfiguration
         {
             get
             {
-                return player;
+                return _graphicsConfig;
             }
         }
 
-        public Vector3 PlayerPosition
+        public float DamageMultiplier
         {
             get
             {
-                return player.transform.position;
-            }
-        }
+                switch (_gameConfig.difficulty){
 
-        public PlayerCamera PlayerCamera
-        {
-            get
-            {
-                return playerCamera;
+                    case DifficultyConfiguration.Easy:
+                        return 1f;
+
+                    case DifficultyConfiguration.Intermediate:
+                        return 1.25f;
+
+                    case DifficultyConfiguration.Hard:
+                        return 1.5f;
+
+                    case DifficultyConfiguration.Insane:
+                        return 1.75f;
+
+                    case DifficultyConfiguration.Nightmare:
+                        return 2f;
+
+                    default:
+                        return 1f;
+                }
             }
         }
 
@@ -88,31 +106,33 @@ namespace MyGame.GameManagement
 
         }
 
+        private void Update()
+        {
+            AdjustNoiseTirggers(Player.NoiseLevel);
+        }
+
         #region Helpers
 
-
-        public void AddSpawnPoint(SpawnPoint point)
+        public void AddEnemy(EnemyCharacter enemy)
         {
-            spawnPoints.Add(point);
+            _enemies.Add(enemy);
         }
 
-        void SetNoiseTirggers(float multiplier)
+        public void RemoveEnemy(EnemyCharacter enemy)
         {
-            foreach (SpawnPoint point in spawnPoints)
-                point.SetNoiseTirggers(multiplier);
+            _enemies.Remove(enemy);
         }
 
-        void Spawn()
+        void AdjustNoiseTirggers(float multiplier)
         {
-            foreach (SpawnPoint point in spawnPoints)
-                point.Spawn();
+            foreach (EnemyCharacter enemy in _enemies)
+                enemy.AdjustTriggerRadious(multiplier);
         }
 
-
-#endregion
+        #endregion
     }
 
-    public class RayCastLayers
+    public class RaycastLayers
     {
         // Built-i Layer
         public static LayerMask DefaultLayer = 0;
@@ -122,32 +142,52 @@ namespace MyGame.GameManagement
 
         // Custom Layer
         public static LayerMask EnvironmentLayer = (1 << 8);
-        public static LayerMask EnemyLayer = (1 << 9);
-        public static LayerMask PlayerLayer = (1 << 10);
-        public static LayerMask VFXLayer = (1 << 11);
+        public static LayerMask PlayerLayer = (1 << 9);
+        public static LayerMask EnemyLayer = (1 << 10);
+        public static LayerMask EnemyCapsuleLayer = (1 << 11);
+        public static LayerMask CrouchVFXLayer = (1 << 12);
+        public static LayerMask ItemLayer = (1 << 13);
+        public static LayerMask InventoryItemLayer = (1 << 14);
+        public static LayerMask GrenadeThrownLayer = (1 << 15);
+
+        public static LayerMask SurfaceSearchLayer = ~(IgnoreRaycastLayer + PlayerLayer + EnemyCapsuleLayer + CrouchVFXLayer + InventoryItemLayer);
+        public static LayerMask BulletLayer = ~(IgnoreRaycastLayer + PlayerLayer + EnemyCapsuleLayer + InventoryItemLayer);
+        public static LayerMask ExplosionLayer = (PlayerLayer + EnemyLayer + ItemLayer + GrenadeThrownLayer);
     }
 
     [System.Serializable]
-    public class GameConfiguration
+    public struct GameConfiguration
     {
         public float walkNoiseMultiplier;
         public float crouchNoiseMultiplier;
         public float SprintNoiseMultiplier;
+
+        public DifficultyConfiguration difficulty;
     }
 
     [System.Serializable]
-    public class MouseConfiguration
+    public enum DifficultyConfiguration: int
     {
-        public float sensitivityX = 3f;
-        public float sensitivityY = 3f;
-        public float sensitivityScroll = 3f;
+        Easy = 0,
+        Intermediate,
+        Hard,
+        Insane,
+        Nightmare
     }
 
     [System.Serializable]
-    public class GraphicsConfiguration
+    public struct MouseConfiguration
     {
-        public float bulletMarkLifeTime = 10f;
-        public float CartridgeLifeTime = 10f;
+        public float sensitivityX;
+        public float sensitivityY;
+        public float sensitivityScroll;
+    }
+
+    [System.Serializable]
+    public struct GraphicsConfiguration
+    {
+        public float bulletMarkLifeTime;
+        public float CartridgeLifeTime;
     }
 }
 

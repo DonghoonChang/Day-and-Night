@@ -1,0 +1,171 @@
+fileFormatVersion: 2
+guid: b8a3735519632f5419a720aa013c3efb
+timeCreated: 1504186363
+licenseType: Store
+ModelImporter:
+  serializedVersion: 21
+  fileIDToRecycleName:
+    100000: BackSpiderLLeg1
+    100002: BackSpiderLLeg2
+    100004: BackSpiderLLeg3
+    100006: BackSpiderLLegPlatform1
+    100008: BackSpiderRLeg1
+    100010: BackSpiderRLeg2
+    100012: BackSpiderRLeg3
+    100014: BackSpiderRLegPlatform1
+    100016: FrontSpiderLLeg1
+    100018: FrontSpiderLLeg2
+    100020: FrontSpiderLLeg3
+    100022: FrontSpiderLLegPlatform
+    100024: FrontSpiderRLeg1
+    100026: FrontSpiderRLeg2
+    100028: FrontSpiderRLeg3
+    100030: FrontSpiderRLegPlatform
+    100032: insectoid
+    100034: //RootNode
+    100036: Spider1Bone001
+    100038: Spider1Bone002
+    100040: Spider2Bone001
+    100042: Spider2Bone002
+    100044: SpiderHub003
+    100046: SpiderHub005
+    100048: SpiderHub005Bone001
+    100050: SpiderHub005Bone002
+    100052: SpiderHub005Bone004
+    100054: SpiderHub005Bone004 1
+    100056: SpiderHub005Bone005
+    100058: SpiderHub005Bone006
+    100060: SpiderLArm1
+    100062: SpiderLArm2
+    100064: SpiderLArmCollarbone
+    100066: SpiderLArmPalm
+    100068: SpiderRArm1
+    100070: SpiderRArm2
+    100072: SpiderRArmCollarbone
+    100074: SpiderRArmPalm
+    100076: SpiderSpine1
+    100078: SpiderSpine2
+    100080: SpiderTail1
+    100082: SpiderTail2
+    100084: SpiderTail3
+    400000: BackSpiderLLeg1
+    400002: BackSpiderLLeg2
+    400004: BackSpiderLLeg3
+    400006: BackSpiderLLegPlatform1
+    400008: BackSpiderRLeg1
+    400010: BackSpiderRLeg2
+    400012: BackSpiderRLeg3
+    400014: BackSpiderRLegPlatform1
+    400016: FrontSpiderLLeg1
+    400018: FrontSpiderLLeg2
+    400020: FrontSpiderLLeg3
+    400022: FrontSpiderLLegPlatform
+    400024: FrontSpiderRLeg1
+    400026: FrontSpiderRLeg2
+    400028: FrontSpiderRLeg3
+    400030: FrontSpiderRLegPlatform
+    400032: insectoid
+    400034: //RootNode
+    400036: Spider1Bone001
+    400038: Spider1Bone002
+    400040: Spider2Bone001
+    400042: Spider2Bone002
+    400044: SpiderHub003
+    400046: SpiderHub005
+    400048: SpiderHub005Bone001
+    400050: SpiderHub005Bone002
+    400052: SpiderHub005Bone004
+    400054: SpiderHub005Bone004 1
+    400056: SpiderHub005Bone005
+    400058: SpiderHub005Bone006
+    400060: SpiderLArm1
+    400062: SpiderLArm2
+    400064: SpiderLArmCollarbone
+    400066: SpiderLArmPalm
+    400068: SpiderRArm1
+    400070: SpiderRArm2
+    400072: SpiderRArmCollarbone
+    400074: SpiderRArmPalm
+    400076: SpiderSpine1
+    400078: SpiderSpine2
+    400080: SpiderTail1
+    400082: SpiderTail2
+    400084: SpiderTail3
+    4300000: insectoid
+    9500000: //RootNode
+    13700000: insectoid
+  materials:
+    importMaterials: 0
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -2,29 +2,31 @@
 
 public class EnemyRagdollMapperRoot : MonoBehaviour {
 
-    public GameObject masterRig;
-    public GameObject slaveRig;
+    public Transform masterRig;
+    public Transform slaveRig;
     public Rigidbody slaveRigHips;
 
-    Transform[] slaveRigTransforms;
-    EnemyRagdollMapperParts[] slaveRigMappings;
+    Collider[] _colliders;
+    Transform[] _slaveRigTransforms;
+    EnemyRagdollMapperParts[] _slaveRigMappings;
 
 
     void Start () {
 
-        slaveRigTransforms = slaveRig.GetComponentsInChildren<Transform>();
-        for (int i = 1; i < slaveRigTransforms.Length; i++)
+        _colliders = slaveRig.GetComponentsInChildren<Collider>();
+        _slaveRigTransforms = slaveRig.GetComponentsInChildren<Transform>();
+
+        for (int i = 1; i < _slaveRigTransforms.Length; i++)
         {
-            string relPath = (GetObjectPath(slaveRigTransforms[i]));
-            Transform matchingPart = masterRig.transform.Find(relPath) as Transform;
-            EnemyRagdollMapperParts mapping = slaveRigTransforms[i].gameObject.AddComponent<EnemyRagdollMapperParts>() as EnemyRagdollMapperParts;
+            string relPath = (GetObjectPath(_slaveRigTransforms[i]));
+            Transform matchingPart = masterRig.Find(relPath) as Transform;
+            EnemyRagdollMapperParts mapping = _slaveRigTransforms[i].gameObject.AddComponent<EnemyRagdollMapperParts>() as EnemyRagdollMapperParts;
             mapping.MatchingPart = matchingPart;
 
         }
 
-        slaveRigMappings = slaveRig.GetComponentsInChildren<EnemyRagdollMapperParts>();
-        slaveRigHips.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezePositionZ
-                                  | RigidbodyConstraints.FreezeRotationX| RigidbodyConstraints.FreezeRotationY | RigidbodyConstraints.FreezeRotationZ;
+        _slaveRigMappings = slaveRig.GetComponentsInChildren<EnemyRagdollMapperParts>();
+        slaveRigHips.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezePositionZ;
 
 	}
 
@@ -45,7 +47,11 @@ public class EnemyRagdollMapperRoot : MonoBehaviour {
     public void OnKilled()
     {
         slaveRigHips.constraints = RigidbodyConstraints.None;
-        foreach(EnemyRagdollMapperParts mapping in slaveRigMappings)
+
+        foreach (Collider col in _colliders)
+            col.isTrigger = false;
+
+        foreach(EnemyRagdollMapperParts mapping in _slaveRigMappings)
             mapping.enabled = false;
     }
 

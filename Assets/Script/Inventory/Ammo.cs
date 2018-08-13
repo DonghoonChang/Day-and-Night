@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MyGame.Inventory.Weapon
+namespace MyGame.Object.Weapon
 {
     public class Ammo : Item
     {
@@ -8,17 +8,9 @@ namespace MyGame.Inventory.Weapon
         AmmoCard ammoCard;
 
         [SerializeField]
-        int _quantity;
+        protected int _count;
 
         #region Properties
-
-        public override Sprite Icon
-        {
-            get
-            {
-                return ammoCard.icon;
-            }
-        }
 
         public override string Name
         {
@@ -46,19 +38,20 @@ namespace MyGame.Inventory.Weapon
             }
         }
 
-        public int Quantity
+        public virtual int Count
         {
             get
             {
-                return _quantity;
+                return _count;
             }
 
             set
             {
-                _quantity = Mathf.Max(0, value);
+                _count = Mathf.Max(0, value);
             }
         }
 
         #endregion
+
     }
 }

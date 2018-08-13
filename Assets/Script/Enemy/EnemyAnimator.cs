@@ -1,14 +1,13 @@
 ﻿using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.AI;
 using System.Collections;
 using System.Collections.Generic;
-using GameManager = MyGame.GameManagement.GameManager;
-using SFXManager = MyGame.GameManagement.SFXManager;
-using WeaponStats = MyGame.Inventory.Weapon.WeaponStats;
-using HitInfo = MyGame.Inventory.Weapon.HitInfo;
-using PlayerCharacter = MyGame.Player.PlayerCharacter;
 using Random = UnityEngine.Random;
+using UIFloatingStats = MyGame.UI.UIFloatingStats;
+using VFXManager = MyGame.GameManagement.VFXManager;
+using CameraManager = MyGame.GameManagement.CameraManager;
+using PlayerCamera = MyGame.Player.PlayerCamera;
+
 
 namespace MyGame.Enemy {
 
@@ -19,8 +18,8 @@ namespace MyGame.Enemy {
 
         /* Animations */
         static int IdleId = Animator.StringToHash("Idle");
-        static int IdleoffsetId = Animator.StringToHash("IdleOffset");
         static int WalkId = Animator.StringToHash("Walk");
+        static int IdleoffsetId = Animator.StringToHash("IdleOffset");
 
         // Attack
         static int AttackAId = Animator.StringToHash("Attack A");
@@ -33,70 +32,111 @@ namespace MyGame.Enemy {
         // Stagger
         static int StaggerAId = Animator.StringToHash("Stagger A");
         static int StaggerBId = Animator.StringToHash("Stagger B");
-        static int StaggerCId = Animator.StringToHash("StaggerC");
+        static int StaggerCId = Animator.StringToHash("Stagger C");
 
-        // Critical Health
+        // Other
         static int RoarId = Animator.StringToHash("Roar");
-        static int FakeDeathId = Animator.StringToHash("Fake Death");
 
-        static float TeleportDistance = 3f;
         static float TeleportDelay = 1.5f;
-        static float AttackDistance = 1.15f;
+        static float TeleportDistance = 3f;
+        static float rotateSpeedWatch = 2f;
+        static float rotateSpeedSearch =  5f;
+        static float watchAngularThreshold = 10f;
+
         #endregion
 
-        GameManager gameManager;
-        SFXManager sfxManager;
+        VFXManager _vfxManager;
 
         [SerializeField]
-        EnemyBehaviorCard behaviorCard;
+        EnemyBehaviorCard _behaviorCard;
+        EnemyAnimations _animations;
 
-        // Components 
-        Animator animator;
-        NavMeshAgent navAgent;
-        EnemyRagdollMapperRoot mappingController;
+        Animator _animator;
+        NavMeshAgent _navAgent;
+        UIFloatingStats _floatingUI;
+        EnemyRagdollMapperRoot _mappingController;
 
-        // Others
-        PlayerCharacter player;
-        Rigidbody[] ragdollRigidBodies;
-        Dictionary<string, Rigidbody> ragdollRBDic = new Dictionary<string, Rigidbody>();
+        Rigidbody[] _rigidbodies;
+        Dictionary<string, Rigidbody> _rbDic = new Dictionary<string, Rigidbody>();
 
-        // Targets
-        Transform target;
-        Vector3 targetLastSeen;
-        float stoppingDistance;
-        bool lookAtTarget = false;
+        Collider[] _colliders;
+        Dictionary<string, Collider> _colDic = new Dictionary<string, Collider>();
+
+        Transform _target;
+        Vector3 _targetLastSeen;
+
+        bool _ikOnTarget = false;
+        float _attackDistance;
+        float _stoppingDistance;
+
+        #region Properties
+
+        public float SpeedWalking
+        {
+            get
+            {
+                return _animations.speedWalking;
+            }
+        }
+
+        public float SpeedRunning
+        {
+            get
+            {
+                return _animations.speedRunning;
+            }
+        }
+
+        public float AttackDelay
+        {
+            get
+            {
+                return _animations.attackDelay;
+            }
+        }
+
+        #endregion
 
         #region Awake to Update
 
         private void Awake()
         {
-            animator = GetComponent<Animator>();
-            navAgent = GetComponent<NavMeshAgent>();
-            mappingController = GetComponent<EnemyRagdollMapperRoot>();
+            _animator = GetComponent<Animator>();
+            _navAgent = GetComponent<NavMeshAgent>();
+            _floatingUI = GetComponentInChildren<UIFloatingStats>();
+            _mappingController = GetComponent<EnemyRagdollMapperRoot>();
 
-            animator.SetFloat(IdleoffsetId, Random.Range(0f, 0.35f));
-            stoppingDistance = navAgent.stoppingDistance + navAgent.radius / 2f + 0.25f;
+            _animations = _behaviorCard.animations;
+            _animator.SetFloat(IdleoffsetId, Random.Range(0f, 0.35f));
+            _stoppingDistance = _navAgent.stoppingDistance;
+            _attackDistance = _navAgent.stoppingDistance * 1.15f;
 
-            ragdollRigidBodies = GetComponentsInChildren<Rigidbody>();
-            foreach (Rigidbody rb in ragdollRigidBodies)
+            _colliders = GetComponentsInChildren<Collider>();
+            _rigidbodies = GetComponentsInChildren<Rigidbody>();
+
+            foreach (Collider col in _colliders)
+            {
+                _colDic.Add(col.name, col);
+            }
+
+            foreach (Rigidbody rb in _rigidbodies)
             {
                 rb.useGravity = false;
-                ragdollRBDic.Add(rb.name, rb);
+                _rbDic.Add(rb.name, rb);
             }
         }
 
         private void Start()
         {
-            gameManager = GameManager.Instance;
-            sfxManager = SFXManager.Instance;
+            _vfxManager = VFXManager.Instance;
         }
 
         private void OnAnimatorIK(int layerIndex)
         {
-            if (lookAtTarget)
+            if (_ikOnTarget)
             {
-                animator.SetLookAtWeight(0.5f, 0.5f, 0.5f, 0f, 1f);
-                animator.SetLookAtPosition(target.position + target.transform.up * .75f);
+                _animator.SetLookAtWeight(.5f, .5f, .5f, .5f, .5f);
+                _animator.SetLookAtPosition(_target.position + _target.transform.up * 1f);
             }
         }
 
@@ -106,46 +146,39 @@ namespace MyGame.Enemy {
 
         void DisplayBloodSFX(int index, Transform parent, Vector3 normal)
         {
-            GameObject bloodsfx = Instantiate(sfxManager.bulletImpactFleshA, parent, true);
+            GameObject bloodsfx = Instantiate(_vfxManager.bulletImpactFleshA, parent, true);
             bloodsfx.transform.SetParent(parent, false);
             bloodsfx.transform.localPosition = Vector3.zero;
             bloodsfx.transform.rotation = Quaternion.LookRotation(normal);
             Destroy(bloodsfx, 0.5f);
         }
 
-        public void OnHit(HitInfo[] hitInfos, WeaponStats weaponStats, bool staggered)
+        public void OnHit(Transform[] transformList, Vector3[] normalList, bool staggered)
         {
-            foreach(HitInfo hitInfo in hitInfos)
+            if (transformList.Length != normalList.Length)
+                return;
+
+            for (int i = 0; i < transformList.Length; i++)
             {
-                Rigidbody hitRB = ragdollRBDic[hitInfo.hit.transform.name];
-                hitRB.AddForceAtPosition(hitInfo.ray.direction.normalized * weaponStats.concussion, hitInfo.hit.point, ForceMode.VelocityChange);
-                hitRB.AddTorque(hitInfo.ray.direction.normalized * weaponStats.concussion * 2, ForceMode.VelocityChange);
-                DisplayBloodSFX(1, hitRB.transform, hitInfo.hit.normal);
+                DisplayBloodSFX(1, transformList[i], normalList[i]);
             }
 
             if (staggered)
                 TriggerRandomStagger();
         }
 
-        public void OnKilled(HitInfo[] hitInfos, WeaponStats stats)
+        public void OnKilled()
         {
             ClearBehavior();
 
-            animator.enabled = false;
-            navAgent.enabled = false;
+            _animator.enabled = false;
+            _navAgent.enabled = false;
+            _floatingUI.gameObject.SetActive(false);
 
-            foreach (Rigidbody rb in ragdollRigidBodies)
+            foreach (Rigidbody rb in _rigidbodies)
                 rb.useGravity = true;
 
-            foreach (HitInfo hitInfo in hitInfos)
-            {
-                Rigidbody hitRB = ragdollRBDic[hitInfo.hit.transform.name];
-                hitRB.AddForceAtPosition(hitInfo.ray.direction.normalized * stats.concussion, hitInfo.hit.point, ForceMode.VelocityChange);
-                hitRB.AddTorque(hitInfo.ray.direction.normalized * stats.concussion * 2, ForceMode.VelocityChange);
-                DisplayBloodSFX(1, hitRB.transform, hitInfo.hit.normal);
-            }
-
-            mappingController.OnKilled();
+            _mappingController.OnKilled();
         }
 
         #endregion
@@ -156,37 +189,39 @@ namespace MyGame.Enemy {
         {
             ClearAnimation();
             StopAllCoroutines();
-            navAgent.isStopped = true;
+
+            _ikOnTarget = false;
+            _navAgent.isStopped = true;
         }
 
         private void ClearAnimation()
         {
-            lookAtTarget = false;
+            _ikOnTarget = false;
 
-            animator.SetInteger(IdleId, 0);
-            animator.SetInteger(WalkId, 0);
-            animator.ResetTrigger(AttackAId);
-            animator.ResetTrigger(AttackBId);
-            animator.ResetTrigger(AttackCId);
-            animator.ResetTrigger(AttackDId);
-            animator.ResetTrigger(AttackEId);
-            animator.ResetTrigger(AttackFId);
-            animator.ResetTrigger(StaggerAId);
-            animator.ResetTrigger(StaggerBId);
-            animator.ResetTrigger(RoarId);
+            _animator.SetInteger(IdleId, 0);
+            _animator.SetInteger(WalkId, 0);
+            _animator.ResetTrigger(AttackAId);
+            _animator.ResetTrigger(AttackBId);
+            _animator.ResetTrigger(AttackCId);
+            _animator.ResetTrigger(AttackDId);
+            _animator.ResetTrigger(AttackEId);
+            _animator.ResetTrigger(AttackFId);
+            _animator.ResetTrigger(StaggerAId);
+            _animator.ResetTrigger(StaggerBId);
+            _animator.ResetTrigger(RoarId);
         }
 
         public void SetBehaviorTarget(Transform target)
         {
-            this.target = target;
+            this._target = target;
         }
 
         public void SetTargetLastSeen(Vector3 position)
         {
-            targetLastSeen = position;
+            _targetLastSeen = position;
         }
 
-        /* Idle Behavior */
+        // Idle Behaviors
         public void StartWalkToPointBehavior(Transform point)
         {
             ClearBehavior();
@@ -197,16 +232,16 @@ namespace MyGame.Enemy {
         {
             while (true)
             {
-                if (Vector3.Distance(transform.position, point.position) <= stoppingDistance)
+                if (Vector3.Distance(transform.position, point.position) <= _stoppingDistance)
                 {
-                    animator.SetInteger(WalkId, 0);
+                    _animator.SetInteger(WalkId, 0);
                     yield return new WaitForSeconds(0.2f);
                 }
 
                 else
                 {
-                    animator.SetInteger(WalkId, 1);
-                    navAgent.SetDestination(point.position);
+                    _animator.SetInteger(WalkId, 1);
+                    _navAgent.SetDestination(point.position);
                     yield return new WaitForSeconds(0.2f);
                 }
             }
@@ -222,16 +257,16 @@ namespace MyGame.Enemy {
         {
             while (true)
             {
-                if (Vector3.Distance(transform.position, point.position) <= stoppingDistance)
+                if (Vector3.Distance(transform.position, point.position) <= _stoppingDistance)
                 {
-                    animator.SetInteger(WalkId, 0);
+                    _animator.SetInteger(WalkId, 0);
                     yield return new WaitForSeconds(0.2f);
                 }
 
                 else
                 {
-                    animator.SetInteger(WalkId, 2);
-                    navAgent.SetDestination(point.position);
+                    _animator.SetInteger(WalkId, 2);
+                    _navAgent.SetDestination(point.position);
                     yield return new WaitForSeconds(0.2f);
                 }
             }
@@ -243,7 +278,7 @@ namespace MyGame.Enemy {
             StartCoroutine(WayPointBehavior(wayPoints));
         }
 
-        IEnumerator WayPointBehavior(WayPoints wayPoints)
+        private IEnumerator WayPointBehavior(WayPoints wayPoints)
         {
             Transform[] points = wayPoints.points;
             float waitTime = wayPoints.uponReachWaitTime;
@@ -255,15 +290,15 @@ namespace MyGame.Enemy {
             int startingIndex = currentIndex;
             Transform currentTargetPoint = points[currentIndex];
 
-            navAgent.SetDestination(currentTargetPoint.position);
-            animator.SetInteger(WalkId, walk ? 1 : 2);
+            _navAgent.SetDestination(currentTargetPoint.position);
+            _animator.SetInteger(WalkId, walk ? 1 : 2);
 
             while (!stopLoop)
             {
                 // Upon Reaching the Point, Wait for some seconds and Move On
-                if (Vector3.Distance(transform.position, points[currentIndex].position) <= stoppingDistance)
+                if (Vector3.Distance(transform.position, points[currentIndex].position) <= _stoppingDistance)
                 {
-                    animator.SetInteger(WalkId, 0);
+                    _animator.SetInteger(WalkId, 0);
 
                     yield return new WaitForSeconds(waitTime);
 
@@ -275,8 +310,8 @@ namespace MyGame.Enemy {
                     else
                     {
                         currentTargetPoint = points[currentIndex];
-                        navAgent.SetDestination(currentTargetPoint.position);
-                        animator.SetInteger(WalkId, walk ? 1 : 2);
+                        _navAgent.SetDestination(currentTargetPoint.position);
+                        _animator.SetInteger(WalkId, walk ? 1 : 2);
                     }
                 }
 
@@ -309,11 +344,11 @@ namespace MyGame.Enemy {
             return currentClosestIndex;
         }
 
-        /* Watch Behavior */
+        // Watch Behaviors 
         public void StartRotateToLastSeenBehavior()
         {
             ClearBehavior();
-            StartCoroutine("WathBehavior");
+            StartCoroutine("RotateToLastSeenBehavior");
         }
 
         private IEnumerator RotateToLastSeenBehavior()
@@ -321,24 +356,25 @@ namespace MyGame.Enemy {
             bool stopLoop = false;
             while (!stopLoop)
             {
-                Vector3 relVec = targetLastSeen - transform.position;
+                Vector3 relVec = _targetLastSeen - transform.position;
+                relVec = Vector3.ProjectOnPlane(relVec, transform.up);
                 Quaternion lookRotation = Quaternion.LookRotation(relVec);
 
-                if (Quaternion.Angle(transform.rotation, lookRotation) >= behaviorCard.animations.rotateMinimumAngle)
+                if (Quaternion.Angle(transform.rotation, lookRotation) >= watchAngularThreshold)
                 {
                     bool right = Vector3.Dot(transform.right, relVec) > 0;
-                    transform.rotation = Quaternion.Lerp(transform.rotation, lookRotation, behaviorCard.animations.rotateSpeedWatch * GameTime.deltaTime);
-                    animator.SetInteger(IdleId, right ? 2 : 1);
+                    transform.rotation = Quaternion.Lerp(transform.rotation, lookRotation, rotateSpeedWatch * GameTime.deltaTime);
+                    _animator.SetInteger(IdleId, right ? 2 : 1);
                 }
 
                 else
-                    animator.SetInteger(IdleId, 0);
+                    _animator.SetInteger(IdleId, 0);
 
                 yield return null;
             }
         }
 
-        /* Search Behaivor */
+        // Search Behaivors 
         public void StartWalkToLastSeenBehavior()
         {
             ClearBehavior();
@@ -347,25 +383,25 @@ namespace MyGame.Enemy {
 
         private IEnumerator WalkToLastSeenBehavior()
         {
-            animator.SetInteger(WalkId, 1);
-            navAgent.SetDestination(targetLastSeen);
+            _animator.SetInteger(WalkId, 1);
+            _navAgent.SetDestination(_targetLastSeen);
 
             while (true)
             {
-                if (Vector3.Distance(transform.position, targetLastSeen) <= stoppingDistance)
+                if (Vector3.Distance(transform.position, _targetLastSeen) <= _stoppingDistance)
                 {
-                    animator.SetInteger(WalkId, 0);
+                    _animator.SetInteger(WalkId, 0);
                     yield return new WaitForSeconds(0.2f);
                 }
 
                 else
                 {
-                    animator.SetInteger(WalkId, 1);
-                    navAgent.SetDestination(targetLastSeen);
+                    _animator.SetInteger(WalkId, 1);
+                    _navAgent.SetDestination(_targetLastSeen);
 
-                    Vector3 relVec = targetLastSeen - transform.position;
+                    Vector3 relVec = _targetLastSeen - transform.position;
                     Quaternion lookRotation = Quaternion.LookRotation(relVec);
-                    transform.rotation = Quaternion.Lerp(transform.rotation, lookRotation, behaviorCard.animations.rotateSpeedWalk * GameTime.deltaTime);
+                    transform.rotation = Quaternion.Lerp(transform.rotation, lookRotation, rotateSpeedSearch * GameTime.deltaTime);
                 }
 
                 yield return null;
@@ -380,26 +416,26 @@ namespace MyGame.Enemy {
 
         private IEnumerator RunToLastSeenBehavior()
         {
-            animator.SetInteger(WalkId, 2);
-            navAgent.SetDestination(targetLastSeen);
+            _animator.SetInteger(WalkId, 2);
+            _navAgent.SetDestination(_targetLastSeen);
 
             bool stopLoop = false;
             while (!stopLoop)
             {
-                if (Vector3.Distance(transform.position, targetLastSeen) <= stoppingDistance)
+                if (Vector3.Distance(transform.position, _targetLastSeen) <= _stoppingDistance)
                 {
-                    animator.SetInteger(WalkId, 0);
+                    _animator.SetInteger(WalkId, 0);
                     yield return new WaitForSeconds(0.2f);
                 }
 
                 else
                 {
-                    animator.SetInteger(WalkId, 1);
-                    navAgent.SetDestination(targetLastSeen);
+                    _animator.SetInteger(WalkId, 1);
+                    _navAgent.SetDestination(_targetLastSeen);
 
-                    Vector3 relVec = targetLastSeen - transform.position;
+                    Vector3 relVec = _targetLastSeen - transform.position;
                     Quaternion lookRotation = Quaternion.LookRotation(relVec);
-                    transform.rotation = Quaternion.Lerp(transform.rotation, lookRotation, behaviorCard.animations.rotateSpeedWalk * GameTime.deltaTime);
+                    transform.rotation = Quaternion.Lerp(transform.rotation, lookRotation, rotateSpeedSearch * GameTime.deltaTime);
                 }
 
                 yield return null;
@@ -419,14 +455,14 @@ namespace MyGame.Enemy {
 
             while (true)
             {
-                if (Vector3.Distance(transform.position, targetLastSeen) <= TeleportDistance)
+                if (Vector3.Distance(transform.position, _targetLastSeen) <= TeleportDistance)
                 {
                     yield return new WaitForSeconds(0.2f);
                 }
 
                 else
                 {
-                    Vector3 relVec = (targetLastSeen - transform.position);
+                    Vector3 relVec = (_targetLastSeen - transform.position);
                     Vector3 teleportPosition = transform.position + relVec * fraction;
 
                     NavMeshHit hit;
@@ -434,7 +470,7 @@ namespace MyGame.Enemy {
                     {
                         transform.position = hit.position;
 
-                        Quaternion lookRotation = Quaternion.LookRotation(target.position - transform.position);
+                        Quaternion lookRotation = Quaternion.LookRotation(_target.position - transform.position);
                         transform.rotation = lookRotation;
 
                         yield return new WaitForSeconds(TeleportDelay);
@@ -461,22 +497,22 @@ namespace MyGame.Enemy {
 
             while (true)
             {
-                if (Vector3.Distance(transform.position, targetLastSeen) <= TeleportDistance)
+                if (Vector3.Distance(transform.position, _targetLastSeen) <= TeleportDistance)
                 {
                     yield return new WaitForSeconds(0.2f);
                 }
 
                 else
                 {
-                    Vector3 relVecNorm = (targetLastSeen - transform.position).normalized;
-                    Vector3 teleportPosition = targetLastSeen + (front ? -relVecNorm * TeleportDistance * .5f : relVecNorm * TeleportDistance * .5f);
+                    Vector3 relVecNorm = (_targetLastSeen - transform.position).normalized;
+                    Vector3 teleportPosition = _targetLastSeen + (front ? -relVecNorm * TeleportDistance * .5f : relVecNorm * TeleportDistance * .5f);
 
                     NavMeshHit hit;
                     if (NavMesh.SamplePosition(teleportPosition, out hit, TeleportDistance * .9f, NavMesh.AllAreas))
                     {
                         transform.position = hit.position;
 
-                        Quaternion lookRotation = Quaternion.LookRotation(target.position - transform.position);
+                        Quaternion lookRotation = Quaternion.LookRotation(_target.position - transform.position);
                         transform.rotation = lookRotation;
 
                         yield return new WaitForSeconds(TeleportDelay);
@@ -490,7 +526,7 @@ namespace MyGame.Enemy {
             }
         }
 
-        /* Chase and Attack Behavior */
+        // Chase and Attack Behavior
         public void StartChaseAndAttackBehavior()
         {
             ClearBehavior();
@@ -499,24 +535,41 @@ namespace MyGame.Enemy {
 
         private IEnumerator ChaseAndAttackBehavior()
         {
-            lookAtTarget = true;
+            _ikOnTarget = true;
+
+            float attackTimer = AttackDelay;
 
             while (true)
             {
-                Vector3 relVec = target.position - transform.position;
+
+                Vector3 relVec = _target.position - transform.position;
+                relVec = Vector3.ProjectOnPlane(relVec, transform.up);
+
                 Quaternion lookRotation = Quaternion.LookRotation(relVec);
                 transform.rotation = lookRotation;
 
-                if (Vector3.Distance(transform.position, target.position) <= AttackDistance){
-                    TriggerRandomAttack();
-                    yield return new WaitForSeconds(behaviorCard.animations.attackDelay);
+                if (Vector3.Distance(transform.position, _target.position) <= _attackDistance){
+
+                    _animator.SetInteger(WalkId, 0);
+
+                    if (attackTimer < AttackDelay)
+                        attackTimer += Time.deltaTime;
+
+                    else
+                    {
+
+                        TriggerRandomAttack();
+                        attackTimer = 0f;
+                    }   
+
+                    yield return null;
                 }
 
                 else
                 {
-                    animator.SetInteger(WalkId, 2);
-                    navAgent.SetDestination(target.position);
-                    yield return new WaitForSeconds(0.2f);
+                    _animator.SetInteger(WalkId, 2);
+                    _navAgent.SetDestination(_target.position);
+                    yield return null;
                 }
             }
         }
@@ -529,116 +582,170 @@ namespace MyGame.Enemy {
 
         private IEnumerator TeleportAndAttackBehavior(bool front)
         {
+            _ikOnTarget = true;
 
-            yield return new WaitForSeconds(TeleportDelay / 2f);
+            float attackTimer = 0f;
+            float teleportTimer = 0f;
 
             while (true)
             {
-                Vector3 relVec = target.position - transform.position;
+                Vector3 relVec = _target.position - transform.position;
                 Quaternion lookRotation = Quaternion.LookRotation(relVec);
-                transform.rotation = Quaternion.Lerp(transform.rotation, lookRotation, behaviorCard.animations.rotateSpeedWalk * GameTime.deltaTime);
+                transform.rotation = Quaternion.Lerp(transform.rotation, lookRotation, rotateSpeedSearch * GameTime.deltaTime);
 
-                if (Vector3.Distance(transform.position, target.position) <= AttackDistance)
+                if (Vector3.Distance(transform.position, _target.position) <= _attackDistance)
                 {
-                    TriggerRandomAttack();
-                    yield return new WaitForSeconds(behaviorCard.animations.attackDelay);
-                }
+                    _animator.SetInteger(IdleId, 0);
 
-                else
-                {
-                    Vector3 relVecNorm = (target.position - transform.position).normalized;
-                    Vector3 teleportPosition = targetLastSeen + (front ? -relVecNorm * AttackDistance * .5f : relVecNorm * AttackDistance * .5f);
-
-                    NavMeshHit hit;
-                    if (NavMesh.SamplePosition(teleportPosition, out hit, AttackDistance * .9f, NavMesh.AllAreas))
+                    if (attackTimer < AttackDelay)
                     {
-                        transform.position = hit.position;
-                        transform.rotation = Quaternion.LookRotation(target.position - transform.position);
-
-                        yield return new WaitForSeconds(TeleportDelay / 3f);
+                        attackTimer += Time.deltaTime;
                     }
 
                     else
                     {
-                        yield return new WaitForSeconds(0.5f);
+                        attackTimer = 0f;
+                        TriggerRandomAttack();
                     }
+
+                    yield return null;
+                }
+
+                else
+                {
+                    teleportTimer += Time.deltaTime;
+
+                    if (teleportTimer > TeleportDelay)
+                    {
+                        NavMeshHit hit;
+
+                        Vector3 teleportPosition = _targetLastSeen + (front ? -relVec.normalized * _attackDistance * .5f : relVec.normalized * _attackDistance * .5f);
+
+                        if (NavMesh.SamplePosition(teleportPosition, out hit, _attackDistance * .9f, NavMesh.AllAreas))
+                        {
+                            // Teleport and THEN, Look at the Target
+                            transform.position = hit.position;
+                            transform.rotation = Quaternion.LookRotation(_target.position - transform.position);
+
+                            teleportTimer = 0f;
+                        }
+
+                        yield return null;
+                    }
+
+                    else
+                        yield return null;
                 }
             }
         }
 
-        private void TriggerRandomAttack()
+        // Other Behaviors
+        public void Roar(int intensity)
         {
-            int intRandom = Random.Range(1, behaviorCard.animations.totalAttackAnimations + 1);
+            _animator.SetTrigger(RoarId);
 
-            switch (intRandom)
+            PlayerCamera playerCamera = CameraManager.Instance.PlayerCamera;
+            switch (intensity)
             {
                 case 1:
-                    animator.SetTrigger(AttackAId);
+                    playerCamera.ShakeCameraRoarMinor();
                     return;
+
                 case 2:
-                    animator.SetTrigger(AttackBId);
+                    playerCamera.ShakeCameraRoarMedium();
                     return;
+
                 case 3:
-                    animator.SetTrigger(AttackCId);
+                    playerCamera.ShakeCameraRoarMajor();
                     return;
-                case 4:
-                    animator.SetTrigger(AttackDId);
-                    return;
-                case 5:
-                    animator.SetTrigger(AttackEId);
-                    return;
-                case 6:
-                    animator.SetTrigger(AttackFId);
-                    return;
+
                 default:
-                    animator.SetTrigger(AttackAId);
                     return;
             }
         }
 
-        private void TriggerRandomStagger()
+        /// <summary>
+        /// Randomly Triggers an Attack Animation B/W 1 - 6
+        /// </summary>
+        private void TriggerRandomAttack()
         {
-            int intRandom = Random.Range(1, behaviorCard.animations.totalStaggerAnimations + 1);
+            int intRandom = Random.Range(1, 7);
+
             switch (intRandom)
             {
                 case 1:
-                    animator.SetTrigger(StaggerAId);
+                    _animator.SetTrigger(AttackAId);
                     return;
                 case 2:
-                    animator.SetTrigger(StaggerBId);
+                    _animator.SetTrigger(AttackBId);
                     return;
                 case 3:
-                    animator.SetTrigger(StaggerCId);
+                    _animator.SetTrigger(AttackCId);
+                    return;
+                case 4:
+                    _animator.SetTrigger(AttackDId);
+                    return;
+                case 5:
+                    _animator.SetTrigger(AttackEId);
+                    return;
+                case 6:
+                    _animator.SetTrigger(AttackFId);
                     return;
                 default:
-                    animator.SetTrigger(StaggerAId);
+                    _animator.SetTrigger(AttackAId);
+                    return;
+            }
+        }
+
+        /// <summary>
+        /// Randomly Triggers an Stagger Animation B/W 1 - 3
+        /// </summary>
+        private void TriggerRandomStagger()
+        {
+            int intRandom = Random.Range(1, 4);
+            switch (intRandom)
+            {
+                case 1:
+                    _animator.SetTrigger(StaggerAId);
+                    return;
+                case 2:
+                    _animator.SetTrigger(StaggerBId);
+                    return;
+                case 3:
+                    _animator.SetTrigger(StaggerCId);
+                    return;
+                default:
+                    _animator.SetTrigger(StaggerAId);
                     return;
             }
         }
 
         private void SetNavAgentStop()
         {
-            navAgent.isStopped = true;
-            navAgent.speed = 0f;
+            _navAgent.isStopped = true;
+            _navAgent.speed = 0f;
+        }
+
+        private void SetNavAgentSlide()
+        {
+            _navAgent.isStopped = false;
+            _navAgent.speed = 0.2f;
         }
 
         private void SetNavAgentFollow()
         {
-            navAgent.isStopped = false;
-            navAgent.speed = behaviorCard.animations.walkingSpeed;
+            _navAgent.isStopped = false;
+            _navAgent.speed = _animations.speedWalking;
         }
 
         private void SetNavAgentChase()
         {
-            navAgent.isStopped = false;
-            navAgent.speed = behaviorCard.animations.runningSpeed;
+            _navAgent.isStopped = false;
+            _navAgent.speed = _animations.speedRunning;
         }
 
-
-
-        /* Custom Behaviors */
-
-
         #endregion
+
+
     }
 }

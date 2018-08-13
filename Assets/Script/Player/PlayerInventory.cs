@@ -1,63 +1,74 @@
 ﻿using UnityEngine;
 using MyGame.UI;
 using UIManager = MyGame.GameManagement.UIManager;
-using MyGame.Inventory;
-using MyGame.Inventory.Weapon;
+using MyGame.Object;
+using MyGame.Object.Weapon;
 
 namespace MyGame.Player
 {
     public class PlayerInventory : MonoBehaviour
     {
 
-        UIHUD hud;
+        UIHUD _uiHUD;
+
+        PlayerCharacter _player;
+        PlayerFlashlight _flashlight;
+        PlayerWeaponSlot _weaponSlot;
+        PlayerGrenadeSlot _grenadeSlot;
+
+        [SerializeField]
+        int _activeWeaponIndex = -1,
+            _activeMainIndex = -1,
+            _activeMeleeIndex = -1,
+            _activeSecondaryIndex = -1,
+            _activeAmmoIndex = -1,
+            _activeGrenadeIndex = -1;
+
+        [SerializeField] RangedWeapon[] _mainWeaponInventory = new RangedWeapon[2];
+        [SerializeField] MeleeWeapon[] _meleeWeaponInventory = new MeleeWeapon[2];
+        [SerializeField] Item[] _itemInventory = new Item[6];
 
         Ammo _activeAmmo;
-        PlayerWeaponSlot _weaponSlot;
-
-        // Active Weapons
-        int _activeWeaponIndex = -1, _activeMainIndex = -1,
-            _activeMeleeIndex = -1, _activeSecondaryIndex = -1,
-            _activeAmmoIndex = -1;
-
-        RangedWeapon[] mainWeaponInventory = new RangedWeapon[3];
-        MeleeWeapon[] meleeWeaponInventory = new MeleeWeapon[3];
-        Item[] itemInventory = new Item[10];
 
         #region Awake to Update
 
         private void Awake()
         {
             _weaponSlot = transform.root.GetComponentInChildren<PlayerWeaponSlot>();
+            _grenadeSlot = transform.root.GetComponentInChildren<PlayerGrenadeSlot>();
+            _flashlight = transform.root.GetComponentInChildren<PlayerFlashlight>();
+
             _weaponSlot.OnWeaponAttack.AddListener(UpdateAmmoHUD);
+            _grenadeSlot.OnGrenadeChanged.AddListener(UpdateGrenadeHUD);
         }
 
         private void Start()
         {
-            hud = UIManager.Instance.HUDPanel;
+            _uiHUD = UIManager.Instance.HUDPanel;
         }
 
         private void Update()
         {
-            hud.crosshairHUD.SetCurrentSpread(_weaponSlot.CurrentSpread);
+            _uiHUD.SetCrosshairSpread(_weaponSlot.CurrentSpread);
         }
 
         #endregion
 
         #region Properties
 
-        public Weapon[] MainWeaponInventory
+        public PlayerWeapon[] MainWeaponInventory
         {
             get
             {
-                return mainWeaponInventory;
+                return _mainWeaponInventory;
             }
         }
 
-        public Weapon[] MeleeWeaponInventory
+        public PlayerWeapon[] MeleeWeaponInventory
         {
             get
             {
-                return meleeWeaponInventory;
+                return _meleeWeaponInventory;
             }
         }
 
@@ -65,15 +76,7 @@ namespace MyGame.Player
         {
             get
             {
-                return itemInventory;
-            }
-        }
-
-        public Weapon ActiveWeapon
-        {
-            get
-            {
-                return _weaponSlot.Weapon;
+                return _itemInventory;
             }
         }
 
@@ -82,6 +85,14 @@ namespace MyGame.Player
             get
             {
                 return _activeAmmo;
+            }
+        }
+
+        public Grenade ActiveGrenade
+        {
+            get
+            {
+                return _grenadeSlot.Grenade;
             }
         }
 
@@ -98,6 +109,14 @@ namespace MyGame.Player
             get
             {
                 return _activeAmmoIndex;
+            }
+        }
+
+        public int ActiveGrenadeIndex
+        {
+            get
+            {
+                return _activeGrenadeIndex;
             }
         }
 
@@ -125,6 +144,27 @@ namespace MyGame.Player
             }
         }
 
+        public void OnKilled()
+        {
+            for (int i = 0; i < _mainWeaponInventory.Length; i++)
+            {
+                if (_mainWeaponInventory[i] != null)
+                    DropItem(i);
+            }
+
+            for (int i = 0; i < _meleeWeaponInventory.Length; i++)
+            {
+                if (_meleeWeaponInventory[i] != null)
+                    DropItem(i + 10);
+            }
+
+            for (int i = 0; i < _itemInventory.Length; i++)
+            {
+                if (_itemInventory[i] != null)
+                    DropItem(i + 20);
+            }
+        }
+
         #endregion
 
         #region Helpers
@@ -140,6 +180,7 @@ namespace MyGame.Player
             return true;
         }
 
+        // Returns Local Index
         private int GetEmptyItemSlot(Item[] inventory)
         {
             for(int i = 0; i < inventory.Length; i++)
@@ -154,9 +195,9 @@ namespace MyGame.Player
         // Returns Global Index
         private int FindAnyMainWeapon()
         {
-            for (int i = 0; i < mainWeaponInventory.Length; i++)
+            for (int i = 0; i < _mainWeaponInventory.Length; i++)
             {
-                if (mainWeaponInventory[i] != null)
+                if (_mainWeaponInventory[i] != null)
                     return i;
             }
 
@@ -166,9 +207,9 @@ namespace MyGame.Player
         // Returns Global Index
         private int FindAnyMeleeWeapon()
         {
-            for (int i = 0; i < meleeWeaponInventory.Length; i++)
+            for (int i = 0; i < _meleeWeaponInventory.Length; i++)
             {
-                if (meleeWeaponInventory[i] != null)
+                if (_meleeWeaponInventory[i] != null)
                     return i + 10;
             }
 
@@ -178,11 +219,11 @@ namespace MyGame.Player
         // Returns Global Index
         private int FindAnySecondaryWeapon()
         {
-            for (int i = 0; i < itemInventory.Length; i++)
+            for (int i = 0; i < _itemInventory.Length; i++)
             {
-                if (itemInventory[i] is Weapon)
+                if (_itemInventory[i] is PlayerWeapon)
                 {
-                    Weapon weapon = itemInventory[i] as Weapon;
+                    PlayerWeapon weapon = _itemInventory[i] as PlayerWeapon;
 
                     if (weapon.Properties.weaponGroup == WeaponGroup.Secondary)
                         return i + 20;
@@ -192,38 +233,63 @@ namespace MyGame.Player
             return -1;
         }
 
-        private void UnequipCurrentWeapon()
+        // Returns GlobalIndex
+        private int FindAmmo(AmmoType type)
         {
-            if (_activeWeaponIndex != -1)
+            for (int i = 0; i < _itemInventory.Length; i++)
             {
-                Weapon current = _weaponSlot.Weapon;
+                if (_itemInventory[i] is Ammo)
+                {
+                    Ammo ammo = _itemInventory[i] as Ammo;
 
-                _activeWeaponIndex = -1;
-                _weaponSlot.Weapon = null;
-
-                current.gameObject.SetActive(false);
-                current.transform.SetParent(transform);
-                current.transform.localPosition = Vector3.zero;
-                current.transform.rotation = transform.rotation;
-
-                UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Current Weapon Unequipped"));
+                    if (ammo.Type == type)
+                        return i + 20;
+                }
             }
 
-            else
+            return -1;
+        }
+
+        // Returns GlobalIndex
+        public int FindAnyGrenade()
+        {
+            for (int i = 0; i < _itemInventory.Length; i++)
             {
-                UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "No Weapon to Unequip"));
+                if (_itemInventory[i] is Grenade)
+                {
+                    return i + 20;
+                }
             }
+
+            return -1;
+        }
+
+        // Returns GlobalIndex
+        private int FindGrenade(GrenadeType type)
+        {
+            for (int i = 0; i < _itemInventory.Length; i++)
+            {
+                if (_itemInventory[i] is Grenade)
+                {
+                    Grenade grenade = _itemInventory[i] as Grenade;
+
+                    if (grenade.Type == type)
+                        return i + 20;
+                }
+            }
+
+            return -1;
         }
 
         private void EquipWeapon(int globalIndex, bool active)
         {
-            if (0 <= globalIndex && globalIndex <= mainWeaponInventory.Length)
+            if (0 <= globalIndex && globalIndex <= _mainWeaponInventory.Length)
             {
-                RangedWeapon newWeapon = mainWeaponInventory[globalIndex] as RangedWeapon;
+                RangedWeapon newWeapon = _mainWeaponInventory[globalIndex] as RangedWeapon;
 
                 if (newWeapon == null)
                 {
-                    UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Program Logic Error(Indexed Item Null Or Non-Ranged Weapon in the Main Inventory)"));
+                    _uiHUD.ShowResult(false, "Program Logic Error(Indexed Item Null Or Non-Ranged Weapon in the Main Inventory)");
                     return;
                 }
 
@@ -236,23 +302,23 @@ namespace MyGame.Player
                 newWeapon.transform.rotation = _weaponSlot.transform.rotation;
                 _weaponSlot.Weapon = newWeapon;
 
-                UIErrorPanel.ReportResult(new ObjectInteractionResult(true, "Main Weapon Equipped"));
+                _uiHUD.ShowResult(true, newWeapon.Name + " Equipped");
 
                 _activeAmmoIndex = FindAmmo(newWeapon.Properties.ammoType);
                 _activeAmmo = GetItem(_activeAmmoIndex) as Ammo;
 
-                hud.ammoHUD.gameObject.SetActive(true);
-                hud.ammoHUD.SetCurrentAmmo(newWeapon.CurrentAmmo);
-                hud.ammoHUD.SetTotalAmmo(_activeAmmo == null ? 0 : _activeAmmo.Quantity);
+                _uiHUD.ShowAmmo();
+                _uiHUD.SetCurrentAmmo(newWeapon.CurrentAmmo);
+                _uiHUD.SetTotalAmmo(_activeAmmo == null ? 0 : _activeAmmo.Count);
             }
 
-            else if (10 <= globalIndex && globalIndex < 10 + mainWeaponInventory.Length)
+            else if (10 <= globalIndex && globalIndex < 10 + _mainWeaponInventory.Length)
             {
-                Weapon newWeapon = meleeWeaponInventory[globalIndex - 10];
+                PlayerWeapon newWeapon = _meleeWeaponInventory[globalIndex - 10];
 
                 if (newWeapon == null)
                 {
-                    UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Program Logic Error(Indexed Item Null)"));
+                    _uiHUD.ShowResult(false, "Program Logic Error(Indexed Item Null)");
                     return;
                 }
 
@@ -265,31 +331,31 @@ namespace MyGame.Player
                 newWeapon.transform.rotation = _weaponSlot.transform.rotation;
                 _weaponSlot.Weapon = newWeapon;
 
-                UIErrorPanel.ReportResult(new ObjectInteractionResult(true, "Melee Weapon Equipped"));
+                _uiHUD.ShowResult(true, newWeapon.Name + " Equipped");
 
                 _activeAmmo = null;
                 _activeAmmoIndex = -1;
-                hud.ammoHUD.gameObject.SetActive(false);
+                _uiHUD.HideAmmo();
             }
 
-            else if (20 <= globalIndex && globalIndex < 20 + itemInventory.Length)
+            else if (20 <= globalIndex && globalIndex < 20 + _itemInventory.Length)
             {
-                Item item = itemInventory[globalIndex - 20];
+                Item item = _itemInventory[globalIndex - 20];
 
                 if (item == null)
                 {
-                    UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Program Logic Error(Indexed Item Null)"));
+                    _uiHUD.ShowResult(false, "Program Logic Error(Indexed Item Null)");
                     return;
                 }
 
-                if (item is Weapon)
+                if (item is PlayerWeapon)
                 {
                     RangedWeapon newWeapon = item as RangedWeapon;
 
                     // Is the Inventory Correct?
                     if (newWeapon.Properties.weaponGroup != WeaponGroup.Secondary)
                     {
-                        UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Program Logic Error(Main/Melee Item in Item Inventory)"));
+                        _uiHUD.ShowResult(false, "Program Logic Error(Main/Melee Item in Item Inventory)");
                         return;
                     }
 
@@ -302,104 +368,120 @@ namespace MyGame.Player
                     newWeapon.transform.rotation = _weaponSlot.transform.rotation;
                     _weaponSlot.Weapon = newWeapon;
 
-                    UIErrorPanel.ReportResult(new ObjectInteractionResult(true, "Secondary Weapon Equipped"));
+                    _uiHUD.ShowResult(true, newWeapon.Name + " Equipped");
 
                     _activeAmmoIndex = FindAmmo(newWeapon.Properties.ammoType);
                     _activeAmmo = GetItem(_activeAmmoIndex) as Ammo;
 
-                    hud.ammoHUD.gameObject.SetActive(true);
-                    hud.ammoHUD.SetCurrentAmmo(newWeapon.CurrentAmmo);
-                    hud.ammoHUD.SetTotalAmmo(_activeAmmo == null ? 0 : _activeAmmo.Quantity);
+                    _uiHUD.ShowAmmo();
+                    _uiHUD.SetCurrentAmmo(newWeapon.CurrentAmmo);
+                    _uiHUD.SetTotalAmmo(_activeAmmo == null ? 0 : _activeAmmo.Count);
                 }
 
                 else
                 {
-                    UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Program Logic Error(Indexed Item Not Weapon"));
+                    _uiHUD.ShowResult(false, "Program Logic Error(Indexed Item Not Weapon");
                     return;
                 }
             }
         }
 
-        // Returns GlobalIndex
-        private int FindAmmo(AmmoType type)
+        private void UnequipCurrentWeapon()
         {
-            for(int i = 0; i < itemInventory.Length; i++)
+            if (_activeWeaponIndex != -1)
             {
-                if (itemInventory[i] is Ammo)
-                {
-                    Ammo ammo = itemInventory[i] as Ammo;
+                PlayerWeapon current = _weaponSlot.Weapon;
+                WeaponGroup group = current.Properties.weaponGroup;
 
-                    if (ammo.Type == type)
-                        return i + 20;
-                }
+                _activeWeaponIndex = -1;
+
+                if (group == WeaponGroup.Main)
+                    _activeMainIndex = -1;
+
+                else if (group == WeaponGroup.Melee)
+                    _activeMeleeIndex = -1;
+
+                else if (group == WeaponGroup.Secondary)
+                    _activeSecondaryIndex = -1;
+
+                
+                _weaponSlot.Weapon = null;
+
+                current.gameObject.SetActive(false);
+                current.transform.SetParent(transform);
+                current.transform.localPosition = Vector3.zero;
+                current.transform.rotation = transform.rotation;
+
+                _activeAmmo = null;
+                _activeAmmoIndex = -1;
+                UpdateAmmoHUD();
+
+                _uiHUD.ShowResult(true, "Current Weapon Unequipped");
             }
 
-            return -1;
+            else
+            {
+                _uiHUD.ShowResult(false, "No Weapon to Unequip");
+            }
         }
 
         private Item GetItem(int globalIndex)
         {
             // Main Weapon
-            if (0 <= globalIndex && globalIndex < mainWeaponInventory.Length)
+            if (0 <= globalIndex && globalIndex < _mainWeaponInventory.Length)
             {
-                return mainWeaponInventory[globalIndex];
+                return _mainWeaponInventory[globalIndex];
             }
 
             // Melee Weapon
-            else if (10 <= globalIndex && globalIndex < 10 + meleeWeaponInventory.Length)
+            else if (10 <= globalIndex && globalIndex < 10 + _meleeWeaponInventory.Length)
             {
-                return meleeWeaponInventory[globalIndex - 10];
+                return _meleeWeaponInventory[globalIndex - 10];
             }
 
-            else if (20 <= globalIndex && globalIndex < 20 + itemInventory.Length)
+            else if (20 <= globalIndex && globalIndex < 20 + _itemInventory.Length)
             {
-                return itemInventory[globalIndex - 20];
+                return _itemInventory[globalIndex - 20];
             }
 
             else
                 return null;
         }
 
-        #endregion
-
-        // Weapon Related
-        public bool IsCurrentWeaponLocked()
+        private void OrganizeInventories()
         {
-            if (_activeWeaponIndex == -1)
-                return true;
+            RangedWeapon[] mainWeaponInventoryCopy = new RangedWeapon[_mainWeaponInventory.Length];
+            MeleeWeapon[] meleeWeaponInventoryCopy = new MeleeWeapon[_meleeWeaponInventory.Length];
+            Item[] itemInventoryCopy = new Item[_itemInventory.Length];
 
-            else if (_weaponSlot.Weapon.IsAttackLocked)
-                return true;
-
-            else
-                return false;
-        }
-
-        public bool IsCurrentWeaponAutomatic()
-        {
-            if (_activeWeaponIndex == -1)
-                return false;
-
-            else
+            int copy = 0;
+            for (int i = 0; i < _mainWeaponInventory.Length; i++)
             {
-                Item item = GetItem(_activeWeaponIndex);
-
-                if (item is RangedWeapon)
-                {
-                    RangedWeapon weapon = item as RangedWeapon;
-                    return weapon.IsAutomatic;
-                }
-
-                else
-                    return false;
-
+                if (_mainWeaponInventory[i] != null)
+                    mainWeaponInventoryCopy[copy++] = _mainWeaponInventory[i];
             }
+
+            copy = 0;
+            for (int i = 0; i < _meleeWeaponInventory.Length; i++)
+            {
+                if (_meleeWeaponInventory[i] != null)
+                    meleeWeaponInventoryCopy[copy++] = _meleeWeaponInventory[i];
+            }
+
+            copy = 0;
+            for (int i = 0; i < _itemInventory.Length; i++)
+            {
+                if (_itemInventory[i] != null)
+                    itemInventoryCopy[copy++] = _itemInventory[i];
+            }
+
+            _mainWeaponInventory = mainWeaponInventoryCopy;
+            _meleeWeaponInventory = meleeWeaponInventoryCopy;
+            _itemInventory = itemInventoryCopy;
+
         }
 
-        public bool IsWeaponEquipped()
-        {
-            return _activeWeaponIndex != -1;
-        }
+        #endregion
 
         public int FindWeapon(WeaponGroup group)
         {
@@ -407,27 +489,20 @@ namespace MyGame.Player
             {
                 case WeaponGroup.Main:
                     return FindAnyMainWeapon();
+
                 case WeaponGroup.Melee:
                     return FindAnyMeleeWeapon();
+
                 case WeaponGroup.Secondary:
                     return FindAnySecondaryWeapon();
+
                 default:
                     return -1;
             }
         }
 
-        public WeaponGroup GetCurrentWeaponGroup()
-        {
-            if (0 <= _activeWeaponIndex && _activeWeaponIndex < mainWeaponInventory.Length)
-                return WeaponGroup.Main;
-
-            else if (10 <= _activeWeaponIndex && _activeWeaponIndex < 10 + meleeWeaponInventory.Length)
-                return WeaponGroup.Melee;
-
-            else
-                return WeaponGroup.Secondary;
-        }
-
+        // Reloads Current Weapon 
+        // Return if reload animation is necessary
         public bool Reload()
         {
             if (_activeAmmo == null || _activeAmmoIndex == -1)
@@ -440,26 +515,27 @@ namespace MyGame.Player
 
             else
             {
-                if (ActiveWeapon is RangedWeapon)
+                if (_weaponSlot.Weapon is RangedWeapon)
                 {
-                    RangedWeapon weapon = ActiveWeapon as RangedWeapon;
+                    RangedWeapon weapon = _weaponSlot.Weapon as RangedWeapon;
 
-                    int availableAmmo = _activeAmmo.Quantity;
+                    int availableAmmo = _activeAmmo.Count;
                     int requiredAmmo = weapon.MagazineCapacity - weapon.CurrentAmmo;
 
-                    if (availableAmmo > requiredAmmo)
+                    if (requiredAmmo <= 0)
+                        return false;
+
+                    else if (availableAmmo > requiredAmmo)
                     {
-                        _activeAmmo.Quantity -=  requiredAmmo;
+                        _activeAmmo.Count -=  requiredAmmo;
                         weapon.CurrentAmmo += requiredAmmo;
 
                         UpdateAmmoHUD();
-
                         return true;
                     }
 
                     else
                     {
-                        _activeAmmo.Quantity = 0;
                         weapon.CurrentAmmo += availableAmmo;
 
                         DestroyItem(_activeAmmoIndex);
@@ -468,7 +544,6 @@ namespace MyGame.Player
                         _activeAmmoIndex = -1;
 
                         UpdateAmmoHUD();
-
                         return true;
                     }
                 }
@@ -483,40 +558,45 @@ namespace MyGame.Player
             }
         }
 
-        // Inventory Interface Related
+        public void ChargeBattery(float value)
+        {
+            _flashlight.ChargeBattery(value);
+        }
+
+         // Inventory Interface Related
         public ItemInfo GetItemInfo(int globalIndex)
         {
             // Main Weapon
-            if (0 <= globalIndex && globalIndex < mainWeaponInventory.Length)
+            if (0 <= globalIndex && globalIndex < _mainWeaponInventory.Length)
             {
-                RangedWeapon weapon = mainWeaponInventory[globalIndex];
+                RangedWeapon weapon = _mainWeaponInventory[globalIndex];
                 ItemInfo info = new ItemInfo(weapon.Name, weapon.Description,
-                                             weapon.Damage.ToString(), weapon.MagazineCapacity.ToString(),
-                                             weapon.SpreadStep.ToString(), weapon.FireRate.ToString());
+                                             weapon.DamagaPerPellet.ToString(), weapon.MagazineCapacity.ToString(),
+                                             weapon.SpreadStep.ToString(), weapon.RateOfFire.ToString());
 
                 return info;
             }
 
             // Melee Weapon
-            else if (10 <= globalIndex && globalIndex < 10 + meleeWeaponInventory.Length)
+            else if (10 <= globalIndex && globalIndex < 10 + _meleeWeaponInventory.Length)
             {
-                Weapon weapon = mainWeaponInventory[globalIndex - 10];
+                PlayerWeapon weapon = _mainWeaponInventory[globalIndex - 10];
                 ItemInfo info = new ItemInfo(weapon.Name, weapon.Description,
-                                             weapon.Damage.ToString(), "", "", weapon.FireRate.ToString());
+                                             weapon.DamagaPerPellet.ToString(), "", "", weapon.RateOfFire.ToString());
 
                 return info;
             }
 
-            else if (20 <= globalIndex && globalIndex < 20 + itemInventory.Length)
+            else if (20 <= globalIndex && globalIndex < 20 + _itemInventory.Length)
             {
-                Item item = itemInventory[globalIndex - 20];
+                Item item = _itemInventory[globalIndex - 20];
 
                 if (item is RangedWeapon)
                 {
                     RangedWeapon weapon = item as RangedWeapon;
                     ItemInfo info = new ItemInfo(weapon.Name, weapon.Description,
-                                                 weapon.Damage.ToString(), weapon.MagazineCapacity.ToString(),
-                                                 weapon.SpreadStep.ToString(), weapon.FireRate.ToString());
+                                                 weapon.DamagaPerPellet.ToString(), weapon.MagazineCapacity.ToString(),
+                                                 weapon.SpreadStep.ToString(), weapon.RateOfFire.ToString());
 
                     return info;
                 }
@@ -529,116 +609,166 @@ namespace MyGame.Player
             }
 
             else
-                return null;
+                return new ItemInfo("Wrong Indexing", "Wrong Indexing", "Wrong Indexing", "Wrong Indexing", "Wrong Indexing", "Wrong Indexing");
         }
 
         public void UseItem(int globalIndex)
         {
             // Main Weapon
-            if (0 <= globalIndex && globalIndex < mainWeaponInventory.Length)
+            if (0 <= globalIndex && globalIndex < _mainWeaponInventory.Length)
             {
                 if (_activeWeaponIndex == -1)
                     EquipWeapon(globalIndex, false);
 
                 else
                 {
-                    bool wasActive = _weaponSlot.isWeaponActive;
+                    bool wasActive = _weaponSlot.Weapon.gameObject.activeSelf;
+
                     UnequipCurrentWeapon();
                     EquipWeapon(globalIndex, wasActive);
                 }
             }
 
             // Melee Weapon
-            else if (10 <= globalIndex && globalIndex < 10 + meleeWeaponInventory.Length)
+            else if (10 <= globalIndex && globalIndex < 10 + _meleeWeaponInventory.Length)
             {
                 if (_activeWeaponIndex == -1)
                     EquipWeapon(globalIndex, false);
 
                 else
                 {
-                    bool wasActive = _weaponSlot.isWeaponActive;
+                    bool wasActive = _weaponSlot.Weapon.gameObject.activeSelf;
                     UnequipCurrentWeapon();
                     EquipWeapon(globalIndex, wasActive);
                 }
             }
 
-            else if (20 <= globalIndex && globalIndex < 20 + itemInventory.Length)
+            else if (20 <= globalIndex && globalIndex < 20 + _itemInventory.Length)
             {
                 int itemIndex = globalIndex - 20;
 
-                Item item = itemInventory[itemIndex];
+                Item item = _itemInventory[itemIndex];
 
                 // Is the Indexing Correct?
                 if (item == null)
                 {
-                    UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Program Logic Error(Indexed Item Null)"));
+                    _uiHUD.ShowResult(false, "Program Logic Error(Indexed Item Null)");
                     return;
                 }
 
                 // Is the Item a Weapon?
-                if (item is Weapon)
+                if (item is PlayerWeapon)
                 {
                     if (_activeWeaponIndex == -1)
                         EquipWeapon(globalIndex, false);
 
                     else
                     {
-                        bool wasActive = _weaponSlot.isWeaponActive;
+                        bool wasActive = _weaponSlot.Weapon.gameObject.activeSelf;
                         UnequipCurrentWeapon();
                         EquipWeapon(globalIndex, wasActive);
                     }
                 }
 
-                // Item is not a Weapon
-                else
+                else if (item is Grenade)
                 {
+                    if (ActiveGrenadeIndex == -1)
+                    {
+                        Grenade grenade = item as Grenade;
 
+                        _grenadeSlot.Grenade = grenade;
+                        _activeGrenadeIndex = globalIndex;
+
+                        grenade.gameObject.SetActive(false);
+                        grenade.transform.SetParent(_grenadeSlot.transform);
+                        grenade.transform.localPosition = Vector3.zero;
+                        grenade.transform.rotation = _grenadeSlot.transform.rotation;
+
+                        _uiHUD.ShowResult(true, "Grenade Equipped");
+                    }
+
+                    else
+                    {
+                        //Exchange Locations
+                        Grenade prevGrenade = _grenadeSlot.Grenade;
+
+                        prevGrenade.gameObject.SetActive(false);
+                        prevGrenade.transform.SetParent(transform);
+                        prevGrenade.transform.localPosition = Vector3.zero;
+                        prevGrenade.transform.rotation = transform.rotation;
+
+                        Grenade grenade = item as Grenade;
+
+                        grenade.gameObject.SetActive(false);
+                        grenade.transform.SetParent(_grenadeSlot.transform);
+                        grenade.transform.localPosition = Vector3.zero;
+                        grenade.transform.rotation = _grenadeSlot.transform.rotation;
+
+                        _grenadeSlot.Grenade = grenade;
+                        _activeGrenadeIndex = globalIndex;
+
+
+                        _uiHUD.ShowResult(true, "Grenade Equipped");
+                    }
+
+                }
+                // Item is not a Weapon
+                else if (item is Battery)
+                {
+                    Battery battery = item as Battery;
+
+                    _flashlight.ChargeBattery(battery.amount);
+                    DestroyItem(globalIndex);
                 }
             }
 
             else
             {
-                UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Program Logic Error(Wrong Item Index)"));
+                _uiHUD.ShowResult(false, "Program Logic Error(Wrong Item Index)");
                 return;
             }
         }
 
         public bool AddItem(Item item)
         {
-            if (item is Weapon)
+            if (item is PlayerWeapon)
             {
-                Weapon weapon = item as Weapon;
+                PlayerWeapon weapon = item as PlayerWeapon;
 
                 // Main Weapon
                 if (weapon.Properties.weaponGroup == WeaponGroup.Main)
                 {
                     // Inventory Full
-                    if (IsInventoryFull(mainWeaponInventory))
+                    if (IsInventoryFull(_mainWeaponInventory))
                     {
-                        UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Inventory Full"));
+                        _uiHUD.ShowResult(false, "Inventory Full");
                         return false;
                     }
 
                     // Inventory Not FUll
-                    else {
+                    else
+                    {
 
-                        int emptySlotIndex = GetEmptyItemSlot(mainWeaponInventory);
+                        int emptySlotIndex = GetEmptyItemSlot(_mainWeaponInventory);
 
                         if (emptySlotIndex == -1)
                         {
-                            UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Program Logic Error"));
+                            _uiHUD.ShowResult(false, "Program Logic Error");
                             return false;
                         }
 
                         else
                         {
+                            weapon.ToggleInventoryMode(true);
                             weapon.gameObject.SetActive(false);
+
                             weapon.transform.SetParent(transform);
                             weapon.transform.localPosition = Vector3.zero;
                             weapon.transform.localRotation = transform.rotation;
 
-                            mainWeaponInventory[emptySlotIndex] = weapon as RangedWeapon;
-                            UIErrorPanel.ReportResult(new ObjectInteractionResult(true, "Item Added"));
+                            _mainWeaponInventory[emptySlotIndex] = weapon as RangedWeapon;
+
+                            _uiHUD.ShowResult(true, weapon.name + " Added");
                             return true;
                         }
                     }
@@ -646,32 +776,35 @@ namespace MyGame.Player
 
                 else if (weapon.Properties.weaponGroup == WeaponGroup.Melee)
                 {
-                    if (IsInventoryFull(meleeWeaponInventory))
+                    if (IsInventoryFull(_meleeWeaponInventory))
                     {
-                        UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Inventory Full"));
+                        _uiHUD.ShowResult(false, "Inventory Full");
                         return false;
                     }
 
                     else
                     {
 
-                        int emptySlotIndex = GetEmptyItemSlot(meleeWeaponInventory);
+                        int emptySlotIndex = GetEmptyItemSlot(_meleeWeaponInventory);
 
                         if (emptySlotIndex == -1)
                         {
-                            UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Program Logic Error"));
+                            _uiHUD.ShowResult(false, "Program Logic Error");
                             return false;
                         }
 
                         else
                         {
+                            weapon.ToggleInventoryMode(true);
                             weapon.gameObject.SetActive(false);
+
                             weapon.transform.SetParent(transform);
                             weapon.transform.localPosition = Vector3.zero;
                             weapon.transform.localRotation = transform.rotation;
 
-                            meleeWeaponInventory[emptySlotIndex] = weapon as MeleeWeapon;
-                            UIErrorPanel.ReportResult(new ObjectInteractionResult(true, "Item Added"));
+                            _meleeWeaponInventory[emptySlotIndex] = weapon as MeleeWeapon;
+                            _uiHUD.ShowResult(true, weapon.name + " Added");
+
                             return true;
                         }
                     }
@@ -679,32 +812,34 @@ namespace MyGame.Player
 
                 else if (weapon.Properties.weaponGroup == WeaponGroup.Secondary)
                 {
-                    if (IsInventoryFull(itemInventory))
+                    if (IsInventoryFull(_itemInventory))
                     {
-                        UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Inventory Full"));
+                        _uiHUD.ShowResult(false, "Inventory Full");
                         return false;
                     }
 
                     else
                     {
 
-                        int emptySlotIndex = GetEmptyItemSlot(itemInventory);
+                        int emptySlotIndex = GetEmptyItemSlot(_itemInventory);
 
                         if (emptySlotIndex == -1)
                         {
-                            UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Program Logic Error"));
+                            _uiHUD.ShowResult(false, "Program Logic Error");
                             return false;
                         }
 
                         else
                         {
+                            weapon.ToggleInventoryMode(true);
                             weapon.gameObject.SetActive(false);
+
                             weapon.transform.SetParent(transform);
                             weapon.transform.localPosition = Vector3.zero;
                             weapon.transform.localRotation = transform.rotation;
 
-                            itemInventory[emptySlotIndex] = weapon;
-                            UIErrorPanel.ReportResult(new ObjectInteractionResult(true, "Item Added"));
+                            _itemInventory[emptySlotIndex] = weapon;
+                            _uiHUD.ShowResult(true, weapon.name + " Added");
                             return true;
                         }
                     }
@@ -713,33 +848,128 @@ namespace MyGame.Player
 
             else
             {
-                if (IsInventoryFull(itemInventory))
+                if (IsInventoryFull(_itemInventory))
                 {
-                    UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Inventory Full"));
+                    _uiHUD.ShowResult(false, "Inventory Full");
                     return false;
                 }
 
                 else
                 {
 
-                    int emptySlotIndex = GetEmptyItemSlot(itemInventory);
+                    int emptySlotIndex = GetEmptyItemSlot(_itemInventory);
 
                     if (emptySlotIndex == -1)
                     {
-                        UIErrorPanel.ReportResult(new ObjectInteractionResult(false, "Program Logic Error"));
+                        _uiHUD.ShowResult(false, "Program Logic Error");
                         return false;
                     }
 
                     else
                     {
-                        item.gameObject.SetActive(false);
-                        item.transform.SetParent(transform);
-                        item.transform.localPosition = Vector3.zero;
-                        item.transform.localRotation = transform.rotation;
+                        if (item is Ammo)
+                        {
 
-                        itemInventory[emptySlotIndex] = item;
-                        UIErrorPanel.ReportResult(new ObjectInteractionResult(true, "Item Added"));
-                        return true;
+                            Ammo ammo = item as Ammo;
+
+                            // If there's Another Ammo of the Same Type
+                            int ammoIndex = FindAmmo(ammo.Type);
+
+                            if (ammoIndex != -1)
+                            {
+
+                                Ammo prevAmmo = GetItem(ammoIndex) as Ammo;
+                                prevAmmo.Count += ammo.Count;
+
+                                Destroy(ammo.gameObject);
+                                UpdateAmmoHUD();
+
+                                _uiHUD.ShowResult(true, prevAmmo.name + " Added(" + prevAmmo.Count.ToString() + ")");
+                                return true;
+                            }
+
+                            else
+                            {
+                                item.ToggleInventoryMode(true);
+                                item.gameObject.SetActive(false);
+
+                                item.transform.SetParent(transform);
+                                item.transform.localPosition = Vector3.zero;
+                                item.transform.localRotation = transform.rotation;
+
+                                _itemInventory[emptySlotIndex] = item;
+
+                                _uiHUD.ShowResult(true, item.name + " Added");
+
+                                if (_weaponSlot.Weapon != null)
+                                {
+                                    if (ammo.Type == _weaponSlot.Weapon.Properties.ammoType)
+                                    {
+                                        _activeAmmo = ammo;
+                                        _activeAmmoIndex = emptySlotIndex + 20;
+                                        UpdateAmmoHUD();
+                                    }
+                                }
+
+                                return true;
+                            }
+                        }
+
+                        else if (item is Grenade)
+                        {
+                            Grenade grenade = item as Grenade;
+
+                            // If there's Another Ammo of the Same Type
+                            int grenadeIndex = FindGrenade(grenade.Type);
+
+                            if (grenadeIndex != -1)
+                            {
+                                Grenade prevGrenade = GetItem(grenadeIndex) as Grenade;
+
+                                prevGrenade.Count += grenade.Count;
+                                Destroy(grenade.gameObject);
+
+                                UpdateGrenadeHUD();
+
+                                _uiHUD.ShowResult(true, prevGrenade.name + " Added(" + prevGrenade.Count.ToString() + ")");
+
+                                return true;
+                            }
+
+                            else
+                            {
+                                item.ToggleInventoryMode(true);
+                                item.gameObject.SetActive(false);
+
+                                item.transform.SetParent(transform);
+                                item.transform.localPosition = Vector3.zero;
+                                item.transform.localRotation = transform.rotation;
+
+                                _itemInventory[emptySlotIndex] = item;
+
+                                _uiHUD.ShowResult(true, item.name + " Added");
+
+                                if (_grenadeSlot.Grenade == null)
+                                    UseItem(emptySlotIndex + 20);
+
+                                return true;
+                            }
+                        }
+
+                        else
+                        {
+                            item.ToggleInventoryMode(true);
+                            item.gameObject.SetActive(false);
+
+                            item.transform.SetParent(transform);
+                            item.transform.localPosition = Vector3.zero;
+                            item.transform.localRotation = transform.rotation;
+
+                            _itemInventory[emptySlotIndex] = item;
+                            _uiHUD.ShowResult(true, item.name + " Added");
+
+                            return true;
+                        }
                     }
                 }
             }
@@ -747,23 +977,132 @@ namespace MyGame.Player
             return false;
         }
 
-        public bool DropItem(int globalIndex)
+        public void DropItem(int globalIndex)
         {
-            /* Indexing Checking */
-            if (globalIndex < 0 || globalIndex >= itemInventory.Length)
-                return false;
+            if (globalIndex == _activeWeaponIndex)
+                UnequipCurrentWeapon();
 
-            /* Re-order the Rest */
-            for (int i = globalIndex; i < itemInventory.Length - 1; i++)
-                itemInventory[i] = itemInventory[i + 1];
+            // Main Weapon
+            if (0 <= globalIndex && globalIndex < _mainWeaponInventory.Length)
+            {
+                Item item = GetItem(globalIndex);
 
+                _mainWeaponInventory[globalIndex] = null;
 
-            return true;
+                item.ToggleInventoryMode(false);
+                item.gameObject.SetActive(true);
+                item.transform.SetParent(null);
+                item.transform.position = transform.root.position + transform.root.forward + transform.root.up;
+                item.GetComponent<Rigidbody>().AddForce(transform.root.forward + transform.root.up, ForceMode.Impulse);
+            }
+
+            // Melee Weapon
+            else if (10 <= globalIndex && globalIndex < 10 + _meleeWeaponInventory.Length)
+            {
+                Item item = GetItem(globalIndex);
+
+                _meleeWeaponInventory[globalIndex - 10] = null;
+
+                item.ToggleInventoryMode(false);
+                item.gameObject.SetActive(true);
+                item.transform.SetParent(null);
+                item.transform.position = transform.root.position + transform.root.forward + transform.root.up;
+                item.GetComponent<Rigidbody>().AddForce(transform.root.forward + transform.root.up, ForceMode.Impulse);
+            }
+
+            else if (20 <= globalIndex && globalIndex < 20 + _itemInventory.Length)
+            {
+                if (globalIndex == _activeAmmoIndex)
+                {
+                    _activeAmmo = null;
+                    UpdateAmmoHUD();
+                }
+
+                else if (globalIndex == _activeGrenadeIndex)
+                {
+                    _grenadeSlot.Grenade = null;
+                    UpdateGrenadeHUD();
+                }
+
+                Item item = GetItem(globalIndex);
+
+                _itemInventory[globalIndex - 20] = null;
+
+                item.ToggleInventoryMode(false);
+                item.gameObject.SetActive(true);
+                item.transform.SetParent(null);
+                item.transform.position = transform.root.position + transform.root.forward + transform.root.up;
+                item.GetComponent<Rigidbody>().AddForce(transform.root.forward + transform.root.up, ForceMode.Impulse);
+            }
+
+            else
+            {
+                _uiHUD.ShowResult(false, "Program Logic Error(Wrong Item Index)");
+                return;
+            }
+
+            OrganizeInventories();
         }
         
         public void DestroyItem(int globalIndex)
         {
-            Debug.Log("DestroyItem(int globalIndex) not implemented");
+            if (globalIndex == _activeWeaponIndex)
+            {
+                _activeWeaponIndex = -1;
+                _weaponSlot.Weapon = null;
+            }
+
+            if (globalIndex == _activeMainIndex)
+                _activeMainIndex = -1;
+
+            else if (globalIndex == _activeMeleeIndex)
+                _activeMeleeIndex = -1;
+
+            else if (globalIndex == _activeSecondaryIndex)
+                _activeSecondaryIndex = -1;
+
+            else if (globalIndex == _activeAmmoIndex)
+            {
+                _activeAmmoIndex = -1;
+                _activeAmmo = null;
+
+                UpdateAmmoHUD();
+            }
+
+            else if (globalIndex == _activeGrenadeIndex)
+            {
+                _activeGrenadeIndex = -1;
+                _grenadeSlot.Grenade = null;
+            }
+
+            // Main Weapon
+            if (0 <= globalIndex && globalIndex < _mainWeaponInventory.Length)
+            {
+                Item item = GetItem(globalIndex);
+                _mainWeaponInventory[globalIndex] = null;
+                Destroy(item.gameObject);
+            }
+
+            // Melee Weapon
+            else if (10 <= globalIndex && globalIndex < 10 + _meleeWeaponInventory.Length)
+            {
+                Item item = GetItem(globalIndex);
+                _meleeWeaponInventory[globalIndex - 10] = null;
+                Destroy(item.gameObject);
+            }
+
+            else if (20 <= globalIndex && globalIndex < 20 + _itemInventory.Length)
+            {
+                Item item = GetItem(globalIndex);
+                _itemInventory[globalIndex - 20] = null;
+                Destroy(item.gameObject);
+            }
+
+            else
+            {
+                _uiHUD.ShowResult(false, "Program Logic Error(Wrong Item Index), Item Index: " + globalIndex.ToString());
+                return;
+            }
         }
 
         public void CombineItem()
@@ -774,25 +1113,43 @@ namespace MyGame.Player
         // UI Related
         public void UpdateAmmoHUD()
         {
-            if (_weaponSlot.Weapon.Properties.weaponGroup == WeaponGroup.Main 
+            if (_weaponSlot.Weapon == null || _weaponSlot.Weapon.Properties.weaponGroup == WeaponGroup.Melee)
+            {
+                _uiHUD.SetCurrentAmmo(0);
+                _uiHUD.SetTotalAmmo(0);
+            }
+
+            else if (_weaponSlot.Weapon.Properties.weaponGroup == WeaponGroup.Main 
                 || _weaponSlot.Weapon.Properties.weaponGroup == WeaponGroup.Secondary)
             {
                 RangedWeapon weapon = _weaponSlot.Weapon as RangedWeapon;
 
-                hud.ammoHUD.SetCurrentAmmo(weapon.CurrentAmmo);
-                hud.ammoHUD.SetTotalAmmo(ActiveAmmo == null ? 0 : ActiveAmmo.Quantity);
+                _uiHUD.SetCurrentAmmo(weapon.CurrentAmmo);
+                _uiHUD.SetTotalAmmo(_activeAmmo == null ? 0 : _activeAmmo.Count);
             }
+        }
+
+        private void UpdateGrenadeHUD()
+        {
+            if (_grenadeSlot.Grenade == null)
+                _uiHUD.SetCurrentGrenade(0);
+
+            else if (_grenadeSlot.Grenade.Count <= 0)
+                DestroyItem(_activeGrenadeIndex);
+
+            else
+                _uiHUD.SetCurrentGrenade(_grenadeSlot.Grenade.Count);
         }
     }
 
-    public class ItemInfo
+    public struct ItemInfo
     {
         public string name;
         public string description;
         public string damage;
         public string capacity;
         public string spread;
-        public string fireRate;
+        public string rateOfFire;
 
         public ItemInfo(string name, string description, string damage, string capacity, string spread, string fireRate)
         {
@@ -801,7 +1158,7 @@ namespace MyGame.Player
             this.damage = damage;
             this.capacity = capacity;
             this.spread = spread;
-            this.fireRate = fireRate;
+            this.rateOfFire = fireRate;
         }
     }
 }

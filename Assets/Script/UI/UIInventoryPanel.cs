@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using MyGame.Player;
-using MyGame.Inventory.Weapon;
+using MyGame.Object;
 using TMPro;
 
 namespace MyGame.UI
@@ -10,10 +10,6 @@ namespace MyGame.UI
     {
         [SerializeField]
         PlayerInventory inventory;
-
-        public Sprite DefaultMainWeaponImage;
-        public Sprite DefaultMeleeWeaponImage;
-        public Sprite DefaultItemImage;
 
         public Button[] mainWeaponButtons;
         public Button[] meleeWeaponButtons;
@@ -41,16 +37,16 @@ namespace MyGame.UI
             for (int i = 0; i < inventory.MainWeaponInventory.Length; i++)
             {
                 Button button = mainWeaponButtons[i];
+                Item item = inventory.MainWeaponInventory[i];
 
-                if (inventory.MainWeaponInventory[i] == null)
-                {
-                    button.GetComponent<Image>().sprite = DefaultMainWeaponImage;
+                if (item == null)
                     button.interactable = false;
-                }
 
                 else
                 {
-                    button.GetComponent<Image>().sprite = inventory.MainWeaponInventory[i].Icon;
+                    UIItemSlot itemSlot = button.GetComponent<UIItemSlot>();
+                    itemSlot.Item = item;
+
                     button.interactable = true;
                 }
             }
@@ -58,16 +54,17 @@ namespace MyGame.UI
             for (int i = 0; i < inventory.MeleeWeaponInventory.Length; i++)
             {
                 Button button = meleeWeaponButtons[i];
+                Item item = inventory.MeleeWeaponInventory[i];
 
-                if (inventory.MeleeWeaponInventory[i] == null)
-                {
-                    button.GetComponent<Image>().sprite = DefaultMeleeWeaponImage;
-                    meleeWeaponButtons[i].interactable = false;
-                }
+
+                if (item == null)
+                    button.interactable = false;
 
                 else
                 {
-                    button.GetComponent<Image>().sprite = inventory.MeleeWeaponInventory[i].Icon;
+                    UIItemSlot itemSlot = button.GetComponent<UIItemSlot>();
+                    itemSlot.Item = item;
+
                     button.interactable = true;
                 }
             }
@@ -75,61 +72,45 @@ namespace MyGame.UI
             for (int i = 0; i < inventory.ItemInventory.Length; i++)
             {
                 Button button = itemButtons[i];
+                Item item = inventory.ItemInventory[i];
+
 
                 if (inventory.ItemInventory[i] == null)
-                {
-                    button.GetComponent<Image>().sprite = DefaultItemImage;
                     button.interactable = false;
-                }
-
-                else if (inventory.ItemInventory[i] is Weapon)
-                {
-                    Weapon weapon = inventory.ItemInventory[i] as Weapon;
-
-                    button.GetComponent<Image>().sprite = weapon.Icon;
-                    button.interactable = true;
-                }
 
                 else
                 {
-                    button.GetComponent<Image>().sprite = inventory.ItemInventory[i].Icon;
+                    UIItemSlot itemSlot = button.GetComponent<UIItemSlot>();
+                    itemSlot.Item = item;
+
                     button.interactable = true;
                 }
             }
 
             foreach (Button b in itemOptionButtons)
-            {
                 b.interactable = false;
-            }
 
             foreach (Button b in mainWeaponButtons)
-            {
                 if (b.interactable)
                 {
                     b.Select();
                     return;
                 }
-            }
 
             foreach (Button b in meleeWeaponButtons)
-            {
                 if (b.interactable)
                 {
                     b.Select();
                     return;
                 }
-            }
 
             foreach (Button b in itemButtons)
-            {
                 if (b.interactable)
                 {
                     b.Select();
                     return;
                 }
-            }
 
-            //If the program reaches here, it means there's no item in the inventory
         }
 
         private void DisplayItemOptions()
@@ -159,8 +140,8 @@ namespace MyGame.UI
             
             if (visible)
             {
-                ResetItemIndexes();
                 DisplayInventory();
+                ResetItemIndexes();
             }
         }
 
@@ -170,10 +151,6 @@ namespace MyGame.UI
 
             inventoryInfo.name.text = info.name;
             inventoryInfo.description.text = info.description;
-            inventoryInfo.damage.text = info.damage;
-            inventoryInfo.ammoCapcity.text = info.capacity;
-            inventoryInfo.spread.text = info.spread;
-            inventoryInfo.fireRate.text = info.fireRate;
         }
 
         public void OnItemClicked(int globalIndex)
@@ -193,13 +170,10 @@ namespace MyGame.UI
         public void OnUseClicked()
         {
             if (itemIndexA == -1)
-                UIErrorPanel.ReportResult(new Inventory.ObjectInteractionResult(false, "Program Logic Error(Indexing Item with -1)"));
+                return;
 
             else
-            {
-                Debug.Log(itemIndexA);
                 inventory.UseItem(itemIndexA);
-            }
 
             ResetItemIndexes();
             DisplayInventory();
@@ -212,7 +186,14 @@ namespace MyGame.UI
 
         public void OnDropClicked()
         {
+            if (itemIndexA == -1)
+                return;
 
+            else
+                inventory.DropItem(itemIndexA);
+
+            ResetItemIndexes();
+            DisplayInventory();
         }
 
         public void OnCancelClicked()
@@ -228,10 +209,6 @@ namespace MyGame.UI
         {
             public TextMeshProUGUI name;
             public TextMeshProUGUI description;
-            public TextMeshProUGUI damage;
-            public TextMeshProUGUI ammoCapcity;
-            public TextMeshProUGUI spread;
-            public TextMeshProUGUI fireRate;
         }
     }
 }

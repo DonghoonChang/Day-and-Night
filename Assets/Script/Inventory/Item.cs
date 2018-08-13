@@ -1,35 +1,33 @@
 ﻿using UnityEngine;
+using CameraManager = MyGame.GameManagement.CameraManager;
+using PlayerCamera = MyGame.Player.PlayerCamera;
 using ItemXrayRenderer = MyGame.VFX.ItemXrayRenderer;
-using UIFloatingCanvas = MyGame.UI.UIFloatingCanvas;
 
-namespace MyGame.Inventory
+namespace MyGame.Object
 {
     [RequireComponent(typeof(Rigidbody))]
-    [RequireComponent(typeof(SphereCollider))]
     public abstract class Item : InteractableObject
     {
-        static float InteractionTriggerRadius = 2f;
+        public Vector3 scaleInGUI;
 
-        Rigidbody _rigidbody;
-        SphereCollider _interactionTrigger;
-        ItemXrayRenderer[] _xrayRenderers;
-        UIFloatingCanvas _floatingCanvas;
+        protected Rigidbody _rigidbody;
+        protected ItemXrayRenderer[] _xrayRenderers;
+
+        protected bool _isInventoryModeOn = false;
 
         #region Properties
-
-        public abstract Sprite Icon
-        {
-            get;
-        }
-
-        public abstract string Name
-        {
-            get;
-        }
 
         public abstract string Description
         {
             get;
+        }
+
+        public override bool IsInteractable
+        {
+            get
+            {
+                return base.IsInteractable && !_isInventoryModeOn;
+            }
         }
 
         #endregion
@@ -38,76 +36,110 @@ namespace MyGame.Inventory
         {
             base.Awake();
 
-            _interactionTrigger = GetComponent<SphereCollider>();
+            _rigidbody = GetComponent<Rigidbody>();
+            _rigidbody.isKinematic = false;
 
-            if (_interactionTrigger == null)
-            {
-                _interactionTrigger = gameObject.AddComponent<SphereCollider>();
-            }
-
-            _interactionTrigger.isTrigger = true;
-            _interactionTrigger.radius = InteractionTriggerRadius / transform.root.localScale.x;
-
-            _floatingCanvas = GetComponentInChildren<UIFloatingCanvas>();
             _xrayRenderers = GetComponentsInChildren<ItemXrayRenderer>();
             foreach (ItemXrayRenderer rend in _xrayRenderers)
-                rend.HideXray();
+                rend.StopShine();
         }
 
         protected override void Start()
         {
             base.Start();
+            ToggleItemShine(false);
         }
 
-        private void OnTriggerEnter(Collider other)
+        public override void OnTriggerEnter(Collider other)
         {
+            if (other.isTrigger)
+                return;
+
+            if (_isInventoryModeOn)
+                return;
+
             if (other.transform.root.tag == "Player")
             {
-                _isInteractable = true;
-                ToggleEffects(true);
             }
         }
 
-        private void OnTriggerStay(Collider other)
+        public override void OnTriggerStay(Collider other)
         {
+            if (other.isTrigger)
+                return;
+
+            if (_isInventoryModeOn)
+                return;
+
             if (other.transform.root.tag == "Player")
             {
                 _isInteractable = true;
-                ToggleEffects(true);
+                ToggleItemShine(true);
             }
         }
 
-        private void OnTriggerExit(Collider other)
+        public override void OnTriggerExit(Collider other)
         {
+            if (other.isTrigger)
+                return;
+
+            if (_isInventoryModeOn)
+                return;
+
             if (other.transform.root.tag == "Player")
             {
                 _isInteractable = false;
-                ToggleEffects(false);
+
+                ToggleItemShine(false);
             }
         }
+
+        #region Main Functions
 
         public void AddItemInteraction()
         {
             if (_player.AddItem(this))
-                ToggleEffects(false);
+            {
+                ToggleInventoryMode(true);
+            }
         }
 
-        #region Helpers
-
-        public void ToggleEffects(bool on)
+        public void ToggleItemShine(bool on)
         {
             if (on)
             {
-                _floatingCanvas.ToggleUI(true);
                 foreach (ItemXrayRenderer rend in _xrayRenderers)
-                    rend.ShowXray();
+                    rend.StartShine();
             }
 
             else
             {
-                _floatingCanvas.ToggleUI(false);
                 foreach (ItemXrayRenderer rend in _xrayRenderers)
-                    rend.HideXray();
+                    rend.StopShine();
+            }
+        }
+
+        public void ToggleInventoryMode(bool on)
+        {
+            if (on)
+            {
+                gameObject.layer = 14; // Inventory Item Layer
+
+                _isInventoryModeOn = true;
+                _rigidbody.isKinematic = true;
+
+                ToggleItemShine(false);
+                ToggleInteractionTrigger(false);
+            }
+
+            else
+            {
+                gameObject.layer = 13; // Item Layer
+
+                _isInventoryModeOn = false;
+                _rigidbody.isKinematic = false;
+
+                ToggleInteractionTrigger(true);
             }
         }
 
@@ -116,14 +148,8 @@ namespace MyGame.Inventory
 
     public class ObjectInteractionResult
     {
-        public bool isSuccessful;
-        public string message;
-
-        ObjectInteractionResult()
-        {
-            isSuccessful = false;
-            message = "Default Message";
-        }
+        public bool isSuccessful = false;
+        public string message = "Default Message";
 
         public ObjectInteractionResult(bool isSuccessful, string message)
         {

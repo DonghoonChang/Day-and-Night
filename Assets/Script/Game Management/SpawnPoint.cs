@@ -8,9 +8,6 @@ namespace MyGame.GameManagement
 
     public class SpawnPoint : MonoBehaviour
     {
-
-        GameManager gameManager;
-
         [SerializeField] List<EnemyCharacter> spawns = new List<Enemy.EnemyCharacter>();
 
         public GameObject spawnPrefab;
@@ -28,14 +25,7 @@ namespace MyGame.GameManagement
             Spawn();
         }
 
-        void Start()
-        {
-            gameManager = GameManager.Instance;
-            gameManager.AddSpawnPoint(this);
-        }
-
-
-#endregion
+        #endregion
 
         #region Helpers
 
@@ -76,8 +66,6 @@ namespace MyGame.GameManagement
             CancelInvoke();
         }
 
-
-#endregion
-
+        #endregion
     }
 }

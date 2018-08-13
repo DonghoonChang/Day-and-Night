@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MyGame.Inventory
+namespace MyGame.Object
 {
     [CreateAssetMenu(fileName = "Item", menuName = "Inventory/UniqueCard")]
     public class UniqueInfo : ItemCard

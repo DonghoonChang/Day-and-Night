@@ -1,60 +1,41 @@
-﻿namespace MyGame.Inventory.Weapon
+﻿namespace MyGame.Object
 {
     public class WeaponCard : ItemCard
     {
         public Sound attackSound;
-        public WeaponProperties properties;
         public WeaponStats stats;
+        public WeaponProperties properties;
     }
 
     [System.Serializable]
-    public class WeaponProperties
+    public struct WeaponProperties
     {
-        public WeaponGroup weaponGroup;
-        public WeaponType weaponType;
         public AmmoType ammoType;
+        public WeaponType weaponType;
+        public WeaponGroup weaponGroup;
 
-        /* Scope & Laser Sight */
-        public bool isScopeModifiable;
-
-        /* Silencer & Bayonet */
-        public bool isMuzzleModifiable;
-
-        /* Grenade Launcher and Lights(UV exposing Enemy WeakSpot, or Just Flashlight) */
-        public bool isBarrelModifiable;
-
-        /* Automatic */
-        public bool isAutomatic;
+        public bool isAutomatic; // Automatic
+        public bool isScopeModifiable; // Scope & Laser Sight
+        public bool isMuzzleModifiable; // Silencer & Bayonet
+        public bool isBarrelModifiable; // Grenade Launcher and Lights(UV exposing Enemy WeakSpot, or Just Flashlight) */
     }
 
     [System.Serializable]
-    public class WeaponStats
+    public struct WeaponStats
     {
-        /* Damage per Pellet*/
-        public int damage;
-
-        /* Physical Push Force */
-        public int concussion;
-
-        /* Number of Shots Per Reload*/
+        public int rateOfFire;
         public int magazineCapacity;
 
-        /* # of Firing per Min *
-        /* Max : 1200 (Exclusive)*/
-        public int fireRate;
+        public int pelletsPerShot;
+        public int damagePerPellet;
+        public int concussionPerPellet;
 
-        /* # of Pellets per Fire *
-        /* Example : 8+ for Shotguns*/
-        public int pellet = 1;
-
-        /* Weapon Bullet Spray */
-        /* Angle between forward and up in degrees */
         public float spreadStep;
         public float minSpread;
         public float maxSpread;
     }
 
-    public enum WeaponGroup : int { Main = 1, Secondary, Melee }
+    public enum WeaponGroup : int { Unarmed = 0, Main, Secondary, Melee }
     public enum WeaponType : int { Rifle = 10, Shotgun, Cocking = 20, NoCocking }
     public enum AmmoType : int { Rifle = 10, Shotgun, MachineGun, Pistol = 20, SubmachineGun, Revolver}
 }

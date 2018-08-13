@@ -3,14 +3,13 @@ using TMPro;
 
 public class UIHUDAmmo : MonoBehaviour {
 
-    [SerializeField]
-    TextMeshProUGUI _currentAmmoText;
-
-    [SerializeField]
-    TextMeshProUGUI _totalAmmoText;
+    [SerializeField] TextMeshProUGUI _currentAmmoText;
+    [SerializeField] TextMeshProUGUI _totalAmmoText;
+    [SerializeField] TextMeshProUGUI _currentGrenadeText;
 
     int _currentAmmo = 0;
     int _totalAmmo = 0;
+    int _currentGrenade = 0;
 
     private void Awake()
     {
@@ -19,6 +18,9 @@ public class UIHUDAmmo : MonoBehaviour {
 
         if (_totalAmmoText != null)
             _totalAmmoText.text = _totalAmmo.ToString();
+
+        if (_currentGrenadeText != null)
+            _currentGrenadeText.text = _currentGrenade.ToString();
     }
 
     public void SetCurrentAmmo(int count)
@@ -33,4 +35,9 @@ public class UIHUDAmmo : MonoBehaviour {
         _totalAmmoText.text = _totalAmmo.ToString();
     }
 
+    public void SetCurrentGrenade(int count)
+    {
+        _currentGrenade = count;
+        _currentGrenadeText.text = _currentGrenade.ToString();
+    }
 }

@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using VFXManager = MyGame.GameManagement.VFXManager;
 using EnemyBehavior = MyGame.Enemy.EnemyBehavior;
 
 namespace MyGame.VFX
@@ -76,6 +77,7 @@ namespace MyGame.VFX
         {
             _vfxManager = VFXManager.Instance;
         }
+
         private void Update()
         {
             SetXRayRimSize(_vfxManager.GetPingPongSin());

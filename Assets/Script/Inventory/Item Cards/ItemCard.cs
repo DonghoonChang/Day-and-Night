@@ -1,11 +1,9 @@
 ﻿using UnityEngine;
-using UnityEngine.UI;
 
-namespace MyGame.Inventory
+namespace MyGame.Object
 {
     public abstract class ItemCard : ScriptableObject
     {
-        public Sprite icon;
         public string itemName = "No Name";
         public string description = "No Name";
 

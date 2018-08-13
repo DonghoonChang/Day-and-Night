@@ -1,78 +1,51 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using RayCastLayers = MyGame.GameManagement.RayCastLayers;
-using EnemyCharacter = MyGame.Enemy.EnemyCharacter;
+using MyGame.Interface.ITakeHit;
+using CameraManager = MyGame.GameManagement.CameraManager;
+using RaycastLayers = MyGame.GameManagement.RaycastLayers;
+using PlayerCamera = MyGame.Player.PlayerCamera;
 
 
-namespace MyGame.Inventory.Weapon
+namespace MyGame.Object
 {
-    public class RangedWeapon : Weapon
+    public class RangedWeapon : PlayerWeapon
     {
-        public RangedWeaponModifications modifications;
+        [SerializeField] Transform _muzzleTip;
+        [SerializeField] Transform _cartridgeOutlet;
+        [SerializeField] RangedWeaponCard _weaponCard;
 
-        [SerializeField]
-        RangedWeaponCard weaponCard;
+        PlayerCamera _playerCam;
+        Transform _aimPoint;
 
-        public Transform muzzleTip;
-        public Transform cartridgeOutlet;
-
-        Transform _weaponFocus;
+        WeaponStats _stats;
+        WeaponProperties _props;
 
         AudioSource _attackSound;
         AudioSource _dryAttackSound;
         AudioSource _silencedAttackSound;
 
-        [SerializeField]
-        int _currentAmmo = 0;
-        float _currentSpread = 0f;
+        [SerializeField] int _currentAmmo = 0;
+        [SerializeField] float _currentSpread = 0f;
 
-        #region Weapon Stats
-
-        int _damage;
-        int _concussion;
-        int _magazineCapacity;
-        int _fireRate;
-        int _pellet;
-        float _spreadStep;
-        float _minSpread;
-        float _maxSpread;
-
-        #endregion
+        public RangedWeaponModifications modifications;
+        public RangedWeaponModificationEffects modificationEffects;
 
         #region Properties
-
-        // Animation
-        public override WeaponProperties Properties
-        {
-            get
-            {
-                if (weaponCard != null)
-                    return weaponCard.properties;
-
-                else
-                    return null;
-            }
-        }
 
         public override WeaponStats Stats
         {
             get
             {
-                if (weaponCard != null)
-                    return weaponCard.stats;
-
-                else
-                    return null;
+                return _stats;
             }
         }
 
-        // UI + Game Logic
-        public override Sprite Icon
+        public override WeaponProperties Properties
         {
             get
             {
-                return weaponCard.icon;
+                return _props;
             }
         }
 
@@ -80,7 +53,7 @@ namespace MyGame.Inventory.Weapon
         {
             get
             {
-                return weaponCard.name;
+                return transform.name;
             }
         }
 
@@ -88,23 +61,23 @@ namespace MyGame.Inventory.Weapon
         {
             get
             {
-                return weaponCard.description;
+                return _weaponCard.description;
             }
         }
 
-        public override int Damage
+        public override int DamagaPerPellet
         {
             get
             {
-                return _damage;
+                return _stats.damagePerPellet;
             }
         }
 
-        public override int FireRate
+        public override int RateOfFire
         {
             get
             {
-                return _fireRate;
+                return _stats.rateOfFire;
             }
         }
 
@@ -112,15 +85,7 @@ namespace MyGame.Inventory.Weapon
         {
             get
             {
-                return 60f / _fireRate;
-            }
-        }
-
-        public int MagazineCapacity
-        {
-            get
-            {
-                return _magazineCapacity;
+                return 60f / RateOfFire;
             }
         }
 
@@ -141,7 +106,7 @@ namespace MyGame.Inventory.Weapon
         {
             get
             {
-                return _spreadStep;
+                return _stats.spreadStep;
             }
         }
 
@@ -149,7 +114,7 @@ namespace MyGame.Inventory.Weapon
         {
             get
             {
-                return _minSpread;
+                return _stats.minSpread;
             }
         }
 
@@ -157,7 +122,7 @@ namespace MyGame.Inventory.Weapon
         {
             get
             {
-                return _maxSpread;
+                return _stats.maxSpread;
             }
         }
 
@@ -165,7 +130,15 @@ namespace MyGame.Inventory.Weapon
         {
             get
             {
-                return weaponCard.properties.isAutomatic;
+                return _props.isAutomatic;
+            }
+        }
+
+        public int MagazineCapacity
+        {
+            get
+            {
+                return _stats.magazineCapacity;
             }
         }
 
@@ -177,28 +150,35 @@ namespace MyGame.Inventory.Weapon
         {
             base.Awake();
 
-            _damage = weaponCard.stats.damage;
-            _concussion = weaponCard.stats.concussion;
-            _magazineCapacity = weaponCard.stats.magazineCapacity;
-            _fireRate = weaponCard.stats.fireRate;
-            _pellet = weaponCard.stats.pellet;
-            _spreadStep = weaponCard.stats.spreadStep;
-            _minSpread = weaponCard.stats.minSpread;
-            _maxSpread = weaponCard.stats.maxSpread;
+            _stats = _weaponCard.stats;
+            _props = _weaponCard.properties;
 
-            _attackSound = gameObject.AddComponent<AudioSource>();
-            _dryAttackSound = gameObject.AddComponent<AudioSource>();
-            _silencedAttackSound = gameObject.AddComponent<AudioSource>();
+            if (_weaponCard.attackSound != null)
+            {
+                _attackSound = gameObject.AddComponent<AudioSource>();
+                Sound.SoundtoSource(_attackSound, _weaponCard.attackSound);
+            }
 
-            Sound.SoundtoSource(_attackSound, weaponCard.attackSound);
-            Sound.SoundtoSource(_dryAttackSound, weaponCard.dryAttackSound);
-            Sound.SoundtoSource(_silencedAttackSound, weaponCard.silencedAttackSound);
+            if (_weaponCard.dryAttackSound != null)
+            {
+                _dryAttackSound = gameObject.AddComponent<AudioSource>();
+                Sound.SoundtoSource(_dryAttackSound, _weaponCard.dryAttackSound);
+            }
+
+            if (_weaponCard.silencedAttackSound != null)
+            {
+                _silencedAttackSound = gameObject.AddComponent<AudioSource>();
+                Sound.SoundtoSource(_silencedAttackSound, _weaponCard.silencedAttackSound);
+            }
+
         }
 
         protected override void Start()
         {
             base.Start();
-            _weaponFocus = _gameManager.PlayerCamera.AimPoint;
+
+            _playerCam = CameraManager.Instance.PlayerCamera;
+            _aimPoint = _playerCam.AimPoint;
         }
 
         protected virtual void OnEnable()
@@ -213,13 +193,14 @@ namespace MyGame.Inventory.Weapon
         public void Attack(float spread, bool dry)
         {
             _currentSpread = spread;
+
+            LockAttack();
             CancelInvoke("ReleaseAttackLock");
             Invoke("ReleaseAttackLock", AttackDelay);
 
             if (dry)
             {
                 _OnCharacterRenderingOver.AddListener(DryAttackRoutine);
-
             }
 
             else
@@ -229,137 +210,246 @@ namespace MyGame.Inventory.Weapon
             }
         }
 
-        protected override void AttackRoutine()
+        protected void AttackRoutine()
         {
-            base.AttackRoutine();
             _attackSound.Play();
-
             StartCoroutine("FireVFX");
 
-            RaycastHit hit;
-            Ray ray;
+            HashSet<ITakeHit> hitSet = new HashSet<ITakeHit>();
+            Dictionary<ITakeHit, List<Transform>> transformListDic = new Dictionary<ITakeHit, List<Transform>>();
+            Dictionary<ITakeHit, List<Vector3>> normalListDic = new Dictionary<ITakeHit, List<Vector3>>();
 
-            for (int i = 0; i < Stats.pellet; i++)
+            // Penetrating Effect
+            if (modificationEffects.isPenetrating)
             {
-                ray = new Ray(muzzleTip.position, GetBulletDirection(_currentSpread));
+                Ray environmentRay;
+                RaycastHit environmentHit;
 
-                if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~RayCastLayers.IgnoreRaycastLayer, QueryTriggerInteraction.Ignore))
+                for (int i = 0; i < Stats.pelletsPerShot; i++)
                 {
+                    // Looks For Any Walls Blocking the Ray
+                    environmentRay = GetBulletSpreadRay(_currentSpread);
 
-                    string tag = hit.transform.tag;
-
-                    if (tag == "Enemy")
+                    // If There Is
+                    if (Physics.Raycast(environmentRay, out environmentHit, 100f, RaycastLayers.EnvironmentLayer, QueryTriggerInteraction.Ignore))
                     {
-                        EnemyCharacter hitEnemy = hit.transform.root.GetComponent<EnemyCharacter>();
 
-                        if (hitTargets.ContainsKey(hitEnemy))
+                        float distance = Vector3.Distance(_playerCam.transform.position, environmentHit.point);
+
+                        RaycastHit[] hits = Physics.RaycastAll(environmentRay, distance * 1.01f, RaycastLayers.BulletLayer, QueryTriggerInteraction.Ignore);
+
+                        if (hits.Length > 0)
                         {
-                            hitTargets[hitEnemy].Add(new HitInfo(ray, hit));
+                            foreach (RaycastHit hit in hits)
+                            {
+                                ITakeHit hitTarget = hit.transform.root.GetComponent<ITakeHit>();
+
+                                if (hitTarget != null)
+                                {
+                                    if (hitSet.Contains(hitTarget))
+                                    {
+                                        transformListDic[hitTarget].Add(hit.transform);
+                                        normalListDic[hitTarget].Add(hit.normal);
+                                    }
+
+                                    else
+                                    {
+                                        hitSet.Add(hitTarget);
+                                        transformListDic[hitTarget] = new List<Transform> { hit.transform };
+                                        normalListDic[hitTarget] = new List<Vector3> { hit.normal };
+                                    }
+                                }
+
+                                else
+                                {
+                                    InstantiateHitImpact(hit.transform.tag, hit.transform, hit.point, hit.normal);
+                                }
+
+                                // Bullet Push
+                                Rigidbody rb = hit.rigidbody;
+
+                                if (rb != null)
+                                {
+                                    rb.AddForceAtPosition(environmentRay.direction.normalized * _stats.concussionPerPellet, hit.point, ForceMode.VelocityChange);
+                                    rb.AddTorque(environmentRay.direction.normalized * _stats.concussionPerPellet * 2, ForceMode.VelocityChange);
+                                }
+                            }
+                        }
+                    }
+
+                    // If There Is Not
+                    else
+                    {
+                        Debug.Log("Did not hit wall");
+
+                        RaycastHit[] hits = Physics.RaycastAll(environmentRay, 100f, (RaycastLayers.BulletLayer & ~RaycastLayers.EnvironmentLayer), QueryTriggerInteraction.Ignore);
+
+                        if (hits.Length > 0)
+                        {
+                            foreach (RaycastHit hit in hits)
+                            {
+                                string hitTag = hit.transform.tag;
+                                ITakeHit hitTarget = hit.transform.root.GetComponent<ITakeHit>();
+
+                                if (hitTarget != null)
+                                {
+                                    if (hitSet.Contains(hitTarget))
+                                    {
+                                        transformListDic[hitTarget].Add(hit.transform);
+                                        normalListDic[hitTarget].Add(hit.normal);
+                                    }
+
+                                    else
+                                    {
+                                        hitSet.Add(hitTarget);
+                                        transformListDic[hitTarget] = new List<Transform> { hit.transform };
+                                        normalListDic[hitTarget] = new List<Vector3> { hit.normal };
+                                    }
+                                }
+
+                                else
+                                {
+                                    InstantiateHitImpact(hit.transform.tag, hit.transform, hit.point, hit.normal);
+                                }
+
+                                // Bullet Push
+                                Rigidbody rb = hit.rigidbody;
+
+                                if (rb != null)
+                                {
+                                    rb.AddForceAtPosition(environmentRay.direction.normalized * _stats.concussionPerPellet, hit.point, ForceMode.VelocityChange);
+                                    rb.AddTorque(environmentRay.direction.normalized * _stats.concussionPerPellet * 2, ForceMode.VelocityChange);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                foreach (ITakeHit hitTarget in hitSet)
+                {
+                    Transform[] transformArray = transformListDic[hitTarget].ToArray();
+                    Vector3[] normalArray = normalListDic[hitTarget].ToArray();
+
+                    if (transformArray.Length != normalArray.Length)
+                        continue;
+
+                    else
+                        hitTarget.OnHit(transformArray, normalArray, _stats.damagePerPellet, _stats.concussionPerPellet, false);
+                }
+            }
+
+            else
+            {
+                Ray ray;
+                RaycastHit hit;
+
+                Debug.Log(Stats.pelletsPerShot);
+                for (int i = 0; i < Stats.pelletsPerShot; i++)
+                {
+                    ray = GetBulletSpreadRay(_currentSpread);
+
+                    if (Physics.Raycast(ray, out hit, 100f, RaycastLayers.BulletLayer, QueryTriggerInteraction.Ignore))
+                    {
+                        ITakeHit hitTarget = hit.transform.root.GetComponent<ITakeHit>();
+
+                        if (hitTarget != null)
+                        {
+                            if (hitSet.Contains(hitTarget))
+                            {
+                                transformListDic[hitTarget].Add(hit.transform);
+                                normalListDic[hitTarget].Add(hit.normal);
+                            }
+
+                            else
+                            {
+                                hitSet.Add(hitTarget);
+                                transformListDic[hitTarget] = new List<Transform> { hit.transform };
+                                normalListDic[hitTarget] = new List<Vector3> { hit.normal };
+                            }
                         }
 
                         else
                         {
-                            hitTargets[hitEnemy] = new List<HitInfo>
-                                {
-                                    new HitInfo(ray, hit)
-                                };
+                            InstantiateHitImpact(hit.transform.tag, hit.transform, hit.point, hit.normal);
+                        }
+
+                        // Bullet Push
+                        Rigidbody rb = hit.rigidbody;
+
+                        if (rb != null)
+                        {
+                            rb.AddForceAtPosition(ray.direction.normalized * _stats.concussionPerPellet, hit.point, ForceMode.VelocityChange);
+                            rb.AddTorque(ray.direction.normalized * _stats.concussionPerPellet * 2, ForceMode.VelocityChange);
                         }
                     }
+                }
 
-                    else if (tag == "Concrete")
-                    {
-                        GameObject bulletImpactConcrete = Instantiate(_sfxManager.bulletImpactConcrete, hit.point, Quaternion.LookRotation(hit.normal));
-                        Destroy(bulletImpactConcrete, _gameManager.GraphicsConfiguration.bulletMarkLifeTime);
-                    }
+                foreach (ITakeHit hitTarget in hitSet)
+                {
+                    Transform[] transformArray = transformListDic[hitTarget].ToArray();
+                    Vector3[] normalArray = normalListDic[hitTarget].ToArray();
 
-                    else if (tag == "Metal")
-                    {
-                        GameObject bulletImpactConcrete = Instantiate(_sfxManager.bulletImpactMetal, hit.point, Quaternion.LookRotation(hit.normal));
-                        Destroy(bulletImpactConcrete, _gameManager.GraphicsConfiguration.bulletMarkLifeTime);
-                    }
-
-                    else if (tag == "Wood")
-                    {
-                        GameObject bulletImpactConcrete = Instantiate(_sfxManager.bulletImpactWood, hit.point, Quaternion.LookRotation(hit.normal));
-                        Destroy(bulletImpactConcrete, _gameManager.GraphicsConfiguration.bulletMarkLifeTime);
-                    }
-
-                    else if (tag == "Sand")
-                    {
-                        GameObject bulletImpactConcrete = Instantiate(_sfxManager.bulletImpactSand, hit.point, Quaternion.LookRotation(hit.normal));
-                        Destroy(bulletImpactConcrete, _gameManager.GraphicsConfiguration.bulletMarkLifeTime);
-                    }
-
-                    else if (tag == "Water")
-                    {
-                        GameObject bulletImpactConcrete = Instantiate(_sfxManager.bulletImpactWater, hit.point, Quaternion.LookRotation(hit.normal));
-                        Destroy(bulletImpactConcrete, _gameManager.GraphicsConfiguration.bulletMarkLifeTime);
-                    }
+                    if (transformArray.Length != normalArray.Length)
+                        continue;
 
                     else
-                    {
-                        GameObject bulletImpactConcrete = Instantiate(_sfxManager.bulletImpactWood, hit.point, Quaternion.LookRotation(hit.normal));
-                        Destroy(bulletImpactConcrete, _gameManager.GraphicsConfiguration.bulletMarkLifeTime);
-                    }
-
+                        hitTarget.OnHit(transformArray, normalArray, _stats.damagePerPellet, _stats.concussionPerPellet, false);
                 }
             }
-
-            foreach (EnemyCharacter enemy in hitTargets.Keys)
-                enemy.OnHit(hitTargets[enemy].ToArray(), Stats);
-
-            hitTargets.Clear();
         }
 
         protected void DryAttackRoutine()
         {
-            base.AttackRoutine();
             _dryAttackSound.Play();
         }
 
-        Vector3 GetBulletDirection(float spray)
+        Ray GetBulletSpreadRay(float spread)
         {
-            float randSpray = Random.Range(0, spray);
+            float randSpread = Random.Range(0, spread);
             float randRotation = Random.Range(0, 360f);
 
-            Vector3 bulletNormal = (_weaponFocus.position - muzzleTip.position).normalized;
-            Vector3 bulletSpray = bulletNormal + Mathf.Tan(randSpray * (2 * Mathf.PI) / 360f) * muzzleTip.up; /* Times current spray */;
-            bulletSpray = Quaternion.AngleAxis(randRotation, bulletNormal) * bulletSpray;
+            Vector3 bulletDirNoSpread = (_aimPoint.position - _playerCam.MainCamera.transform.position).normalized;
+            Vector3 bulletDir = bulletDirNoSpread + Mathf.Tan(randSpread * (2 * Mathf.PI) / 360f) * _playerCam.MainCamera.transform.up;
+            bulletDir = Quaternion.AngleAxis(randRotation, bulletDirNoSpread) * bulletDir;
 
-            return bulletSpray;
+            return new Ray(_playerCam.transform.position, bulletDir);
         }
 
         IEnumerator FireVFX()
         {
-            yield return null;
+            yield return new WaitForEndOfFrame();
 
-            if (weaponCard.muzzleFlashSFX != null)
+            if (_weaponCard.muzzleFlashSFX != null)
             {
-                GameObject muzzleFlash = Instantiate(weaponCard.muzzleFlashSFX, muzzleTip.transform, false);
+                GameObject muzzleFlash = Instantiate(_weaponCard.muzzleFlashSFX, _muzzleTip.transform, false);
                 muzzleFlash.transform.localPosition = Vector3.zero;
-                muzzleFlash.transform.rotation = muzzleTip.transform.rotation;
+                muzzleFlash.transform.rotation = _muzzleTip.transform.rotation;
             }
 
-            if (weaponCard.cartridgeSFX != null)
+            if (_weaponCard.cartridgeSFX != null)
             {
-                GameObject cartridge = Instantiate(weaponCard.cartridgeSFX, cartridgeOutlet.position, cartridgeOutlet.rotation);
+                Instantiate(_weaponCard.cartridgeSFX, _cartridgeOutlet.position, _cartridgeOutlet.rotation);
             }
-        }
-
-        public bool IsMagazineEmpty()
-        {
-            return _currentAmmo == 0;
         }
 
         #endregion
     }
 
     [System.Serializable]
-    public class RangedWeaponModifications
+    public struct RangedWeaponModifications
     {
-        public bool isMuzzleModified = false;
-        public bool isScopeModified = false;
-        public bool isBarrelModified = false;
+        public bool isMuzzleModified;
+        public bool isScopeModified;
+        public bool isBarrelModified;
+    }
+
+    [System.Serializable]
+    public struct RangedWeaponModificationEffects
+    {
+        public bool isScoped;
+        public bool isSilenced;
+        public bool isPenetrating;
+        public bool isMagazineExtended;
     }
 }
 

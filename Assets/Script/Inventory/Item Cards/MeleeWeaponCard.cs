@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MyGame.Inventory.Weapon
+namespace MyGame.Object
 {
     [CreateAssetMenu(fileName = "Item", menuName = "Inventory/MeleeWeaponCard")]
     public class MeleeWeaponCard : WeaponCard

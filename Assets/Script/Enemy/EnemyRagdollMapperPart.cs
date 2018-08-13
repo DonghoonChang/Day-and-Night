@@ -22,6 +22,9 @@ public class EnemyRagdollMapperParts : MonoBehaviour {
             transform.localPosition = Vector3.Lerp(transform.localPosition, matchingPart.localPosition, tightness * GameTime.deltaTime);
             transform.localRotation = Quaternion.Lerp(transform.localRotation, matchingPart.localRotation, tightness * GameTime.deltaTime);
         }
+
+        else
+            this.enabled = false;
     }
 
     private void OnDestroy()

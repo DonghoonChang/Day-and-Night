@@ -1,54 +1,52 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 using GameManager = MyGame.GameManagement.GameManager;
-using RayCastLayers = MyGame.GameManagement.RayCastLayers;
-using Item = MyGame.Inventory.Item;
+using RaycastLayers = MyGame.GameManagement.RaycastLayers;
+using UIManager = MyGame.GameManagement.UIManager;
+using UIHUD = MyGame.UI.UIHUD;
+using EZCameraShake;
 
 namespace MyGame.Player
 {
     public class PlayerCamera : MonoBehaviour
     {
+        UIHUD _uiHUD;
+        PlayerCharacter _player;
+        GameManager _gameManager;
 
-        GameManager gameManager;
-        PlayerCharacter player;
-
-        [SerializeField]
-        Transform cameraBase;
-
-        [SerializeField]
-        Camera mainCamera;
-
-        [SerializeField]
-        Camera vfxCamera;
+        [SerializeField] Transform _cameraBase;
+        [SerializeField] Transform _camerasPosition;
+        [SerializeField] Camera _mainCamera;
+        [SerializeField] Camera _vfxCamera;
+        [SerializeField] Transform _raycastPoint;
+        [SerializeField] Transform _mecanimLookAtPoint;
 
         [SerializeField]
-        PlayerRaycastHitPoint _hitPoint;
+        CamConfiguration camConfig = new CamConfiguration();
 
-        [SerializeField]
-        Transform playerBodyOrientation;
+        float _yaw = 0;
+        float _pitch = 0;
+        bool _scopeVisible = false;
+        InteractableObject _interactable = null;
+        IEnumerator scopeCoroutine;
 
-        [SerializeField]
-        CamConfiguration camConfig;
-
-        float yaw = 0;
-        float pitch = 0;
+        #region Properties
 
         public float Yaw
         {
-            get { return yaw; }
+            get { return _yaw; }
         }
 
         public float Pitch
         {
-            get { return pitch; }
+            get { return _pitch; }
         }
 
-        #region Properties
-        
-        public Transform BodyOrientation
+        public Camera MainCamera
         {
             get
             {
-                return playerBodyOrientation;
+                return _mainCamera;
             }
         }
 
@@ -56,7 +54,15 @@ namespace MyGame.Player
         {
             get
             {
-                return _hitPoint.transform;
+                return _raycastPoint.transform;
+            }
+        }
+
+        public Transform MecanimLookAtPoint
+        {
+            get
+            {
+                return _mecanimLookAtPoint;
             }
         }
 
@@ -64,7 +70,14 @@ namespace MyGame.Player
         {
             get
             {
-                return _hitPoint.InteractableObject;
+                return _interactable;
+            }
+            
+            private set
+            {
+                _interactable = value;
+
+                _uiHUD.SetInteractionName((_interactable == null) ? "" : _interactable.Name);
             }
         }
 
@@ -72,30 +85,20 @@ namespace MyGame.Player
 
         #region Awake and Updates
 
-
         void Awake()
         {
-            if (mainCamera ==  null)
-                mainCamera = Camera.main;
+            if (_mainCamera ==  null)
+                _mainCamera = Camera.main;
 
-            vfxCamera.gameObject.SetActive(false);
-            _hitPoint = GetComponentInChildren<PlayerRaycastHitPoint>();
-        }
-
-        private void FixedUpdate()
-        {
-            if (player.PlayerStatus.isCrouching)
-                vfxCamera.gameObject.SetActive(true);
-
-            else
-                vfxCamera.gameObject.SetActive(false);
-
+            _vfxCamera.gameObject.SetActive(false);
         }
 
         void Start()
         {
-            gameManager = GameManager.Instance;
-            player = gameManager.Player;
+            _uiHUD = UIManager.Instance.HUDPanel;
+            _gameManager = GameManager.Instance;
+
+            _player = _gameManager.Player;
         }
 
         void Update()
@@ -105,13 +108,23 @@ namespace MyGame.Player
 
             UpdatePitchYawScroll();
             UpdateCamPitchAndYaw();
-            UpdateCamPosition();
+            UpdateCamDistance();
         }
 
         void LateUpdate()
         {
             UpdateCamBase();
-            AdjustPlayerAimPoint();
+            AdjustRaycastPoint();
+        }
+
+        private void FixedUpdate()
+        {
+            if (_player.PlayerStatus.isCrouching)
+                _vfxCamera.gameObject.SetActive(true);
+
+            else
+                _vfxCamera.gameObject.SetActive(false);
+
         }
 
         #endregion
@@ -120,92 +133,173 @@ namespace MyGame.Player
 
         void UpdateCamBase()
         {
-            transform.position = Vector3.Lerp(transform.position, cameraBase.position, camConfig.camTightness * GameTime.deltaTime);
+            transform.position = Vector3.Lerp(transform.position, _cameraBase.position, camConfig.camTightness * GameTime.deltaTime);
         }
 
         void UpdatePitchYawScroll()
         {
-            yaw += Input.GetAxis("Mouse X") * gameManager.MouseConfiguration.sensitivityX;
-            yaw %= 360f;
+            _yaw += Input.GetAxis("Mouse X") * _gameManager.MouseConfiguration.sensitivityX;
+            _yaw %= 360f;
 
-            pitch += Input.GetAxis("Mouse Y") * gameManager.MouseConfiguration.sensitivityY;
-            pitch = Mathf.Clamp(pitch, -camConfig.maxCameraDown, camConfig.maxCameraUp);
+            _pitch += Input.GetAxis("Mouse Y") * _gameManager.MouseConfiguration.sensitivityY;
+            _pitch = Mathf.Clamp(_pitch, -camConfig.maxCameraDown, camConfig.maxCameraUp);
 
-            camConfig.currDistance = Mathf.Clamp(camConfig.currDistance - Input.GetAxis("Mouse Scroll") * gameManager.MouseConfiguration.sensitivityScroll, camConfig.minDistance, camConfig.maxDistance);
+            camConfig.currDistance = Mathf.Clamp(camConfig.currDistance - Input.GetAxis("Mouse Scroll") * _gameManager.MouseConfiguration.sensitivityScroll, camConfig.minDistance, camConfig.maxDistance);
         }
 
         void UpdateCamPitchAndYaw()
         {
-            transform.eulerAngles = new Vector3(-pitch, yaw, 0);
+            transform.eulerAngles = new Vector3(-_pitch, _yaw, 0);
         }
 
-        void UpdateCamPosition()
+        void UpdateCamDistance()
         {
             RaycastHit hit;
 
             /* Camera Collision */
-            if (Physics.Linecast(transform.position - transform.forward * camConfig.minDistance, transform.position - transform.forward * camConfig.currDistance, out hit, RayCastLayers.EnvironmentLayer, QueryTriggerInteraction.UseGlobal))
+            if (Physics.Linecast(transform.position - transform.forward * camConfig.minDistance, transform.position - transform.forward * camConfig.currDistance, out hit, RaycastLayers.EnvironmentLayer, QueryTriggerInteraction.UseGlobal))
             {
-                mainCamera.transform.localPosition = Vector3.Slerp(mainCamera.transform.localPosition, -Vector3.forward * (hit.distance * 0.9f), camConfig.camTightness * GameTime.deltaTime);
-                vfxCamera.transform.localPosition = mainCamera.transform.localPosition;
+                _camerasPosition.localPosition = Vector3.Slerp(_camerasPosition.localPosition, -Vector3.forward * (hit.distance * 0.9f), camConfig.camTightness * GameTime.deltaTime);
             }
 
             else
             {
-                if (!player.PlayerStatus.isAiming)
+                if (!_player.PlayerStatus.isAiming)
                 {
-                    mainCamera.transform.localPosition = Vector3.Slerp(mainCamera.transform.localPosition, -Vector3.forward * camConfig.currDistance, camConfig.camTightness * GameTime.deltaTime);
-                    vfxCamera.transform.localPosition = mainCamera.transform.localPosition;
+                    _camerasPosition.localPosition = Vector3.Slerp(_camerasPosition.localPosition, -Vector3.forward * camConfig.currDistance, camConfig.camTightness * GameTime.deltaTime);
+
+                    if (_scopeVisible)
+                    {
+                        StopAllCoroutines();
+                        scopeCoroutine = HideScope(0f);
+                        StartCoroutine(scopeCoroutine);
+                    }
                 }
 
                 else
                 {
-                    mainCamera.transform.localPosition = Vector3.Slerp(mainCamera.transform.localPosition, -Vector3.forward * camConfig.currDistance * camConfig.zoomInFactor, camConfig.camTightness * GameTime.deltaTime);
-                    vfxCamera.transform.localPosition = mainCamera.transform.localPosition;
+                    _camerasPosition.localPosition = Vector3.Slerp(_camerasPosition.localPosition, -Vector3.forward * camConfig.currDistance * camConfig.zoomInFactor, camConfig.camTightness * GameTime.deltaTime);
+
+                    if (_player.IsCurrentWeaponScoped() && !_scopeVisible)
+                    {
+                        StopAllCoroutines();
+                        scopeCoroutine = ShowScope(0.5f);
+                        StartCoroutine(scopeCoroutine);
+                    }
+
+                    else if(!_player.IsCurrentWeaponScoped() && _scopeVisible)
+                    {
+                        StopAllCoroutines();
+                        scopeCoroutine = HideScope(0f);
+                        StartCoroutine(scopeCoroutine);
+                    }
                 }
             }
         }
 
-        void AdjustPlayerAimPoint()
+        void AdjustRaycastPoint()
         {
             RaycastHit hit;
-            Ray ray = new Ray(mainCamera.transform.position, mainCamera.transform.forward);
+            Ray ray = new Ray(_mainCamera.transform.position, _mainCamera.transform.forward);
 
-            if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~(RayCastLayers.IgnoreRaycastLayer + RayCastLayers.PlayerLayer), QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(ray, out hit, Mathf.Infinity, RaycastLayers.SurfaceSearchLayer, QueryTriggerInteraction.Ignore))
             {
-                _hitPoint.transform.position = hit.point;
+                _raycastPoint.transform.position = hit.point;
+
+                InteractableObject interactable = hit.transform.root.GetComponent<InteractableObject>();
+
+                InteractableObject = interactable;
             }
 
             else
             {
-                _hitPoint.transform.position = mainCamera.transform.position + mainCamera.transform.forward * 20f;
+                _raycastPoint.transform.position = _mainCamera.transform.position + _mainCamera.transform.forward * 20f;
             }
         }
 
         #endregion
 
-        [System.Serializable]
-        private class CamConfiguration
+        public void ShakeCameraExplosionMedium()
         {
-            [Range(0, 90f)]
-            public float maxCameraUp;
-
-            [Range(0, 90f)]
-            public float maxCameraDown;
-
-            [Range(1f, 5f)]
-            public float minDistance = 0.5f;
-
-            [Range(1f, 5f)]
-            public float currDistance = 1.5f;
-
-            [Range(1f, 5f)]
-            public float maxDistance = 1.5f;
-
-            [Range(0f, 1f)]
-            public float zoomInFactor = 0.8f;
-
-            public float camTightness = 10f;
+            CameraShaker.Instance.ShakeOnce(5f, 15f, .2f, .2f, Vector3.zero, new Vector3(2f, 2f, 2f));
         }
+
+        public void ShakeCameraExplosionMajor()
+        {
+            CameraShaker.Instance.ShakeOnce(7.5f, 15f, .2f, .2f, Vector3.zero, new Vector3(2f, 2f, 2f));
+        }
+
+        public void ShakeCameraRoarMinor()
+        {
+            CameraShaker.Instance.ShakeOnce(1.75f, 20f, 2.5f, 2.5f, Vector3.zero, new Vector3(2f, 2f, 2f));
+
+        }
+
+        public void ShakeCameraRoarMedium()
+        {
+            CameraShaker.Instance.ShakeOnce(3.5f, 20f, 2.5f, 2.5f, Vector3.zero, new Vector3(.5f, .5f, .5f));
+
+        }
+
+        public void ShakeCameraRoarMajor()
+        {
+            CameraShaker.Instance.ShakeOnce(5.25f, 20f, 2.5f, 2.5f, Vector3.zero, new Vector3(.5f, .5f, .5f));
+
+        }
+
+        public void ShakeCameraDamageMinor()
+        {
+            CameraShaker.Instance.ShakeOnce(2.5f, 20f, .15f, .15f, Vector3.zero, new Vector3(4f, 4f, 0f));
+
+        }
+
+        public void ShakeCameraDamageMedium()
+        {
+            CameraShaker.Instance.ShakeOnce(5f, 20f, .15f, .15f, Vector3.zero, new Vector3(4f, 4f, 0f));
+
+        }
+
+        public void ShakeCameraDamageMajor()
+        {
+            CameraShaker.Instance.ShakeOnce(7.5f, 20f, .15f, .15f, Vector3.zero, new Vector3(4f, 4f, 0f));
+
+        }
+
+        IEnumerator ShowScope(float time)
+        {
+            _scopeVisible = true;
+
+            yield return new WaitForSeconds(time);
+
+            _uiHUD.ShowSniperScope();
+
+            _mainCamera.fieldOfView = 15;
+            _vfxCamera.fieldOfView = 15;
+        }
+
+        IEnumerator HideScope(float time)
+        {
+            _scopeVisible = false;
+
+            yield return new WaitForSeconds(time);
+
+            _uiHUD.HideSniperScope();
+
+            _mainCamera.fieldOfView = 60;
+            _vfxCamera.fieldOfView = 60;
+        }
+
+        [System.Serializable]
+        private struct CamConfiguration
+        {
+            [Range(0, 90f)] public float maxCameraUp;
+            [Range(0, 90f)] public float maxCameraDown;
+            [Range(1f, 5f)] public float minDistance;
+            [Range(1f, 5f)] public float currDistance;
+            [Range(1f, 5f)] public float maxDistance;
+            [Range(0f, 1f)] public float zoomInFactor;
+            [Range(0f, 20f)] public float camTightness;
+        }
+
     }
 }
