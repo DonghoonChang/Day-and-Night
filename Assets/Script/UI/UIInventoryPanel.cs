@@ -1,15 +1,21 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
-using MyGame.Player;
-using MyGame.Object;
+using Game.Player;
+using Game.Object;
 using TMPro;
 
-namespace MyGame.UI
+namespace Game.UI
 {
     public class UIInventoryPanel : MonoBehaviour
     {
         [SerializeField]
-        PlayerInventory inventory;
+        PlayerInventory _inventory;
+
+        [SerializeField]
+        Light _inventoryLight;
+
+        [SerializeField]
+        Transform _commandShade;
 
         public Button[] mainWeaponButtons;
         public Button[] meleeWeaponButtons;
@@ -34,10 +40,12 @@ namespace MyGame.UI
 
         private void DisplayInventory()
         {
-            for (int i = 0; i < inventory.MainWeaponInventory.Length; i++)
+            _commandShade.gameObject.SetActive(false);
+
+            for (int i = 0; i < _inventory.MainWeaponInventory.Length; i++)
             {
                 Button button = mainWeaponButtons[i];
-                Item item = inventory.MainWeaponInventory[i];
+                Item item = _inventory.MainWeaponInventory[i];
 
                 if (item == null)
                     button.interactable = false;
@@ -51,10 +59,10 @@ namespace MyGame.UI
                 }
             }
 
-            for (int i = 0; i < inventory.MeleeWeaponInventory.Length; i++)
+            for (int i = 0; i < _inventory.MeleeWeaponInventory.Length; i++)
             {
                 Button button = meleeWeaponButtons[i];
-                Item item = inventory.MeleeWeaponInventory[i];
+                Item item = _inventory.MeleeWeaponInventory[i];
 
 
                 if (item == null)
@@ -69,13 +77,13 @@ namespace MyGame.UI
                 }
             }
 
-            for (int i = 0; i < inventory.ItemInventory.Length; i++)
+            for (int i = 0; i < _inventory.ItemInventory.Length; i++)
             {
                 Button button = itemButtons[i];
-                Item item = inventory.ItemInventory[i];
+                Item item = _inventory.ItemInventory[i];
 
 
-                if (inventory.ItemInventory[i] == null)
+                if (_inventory.ItemInventory[i] == null)
                     button.interactable = false;
 
                 else
@@ -113,7 +121,7 @@ namespace MyGame.UI
 
         }
 
-        private void DisplayItemOptions()
+        private void ActivateItemCommands()
         {
             foreach (Button b in mainWeaponButtons)
                 b.interactable = false;
@@ -127,6 +135,7 @@ namespace MyGame.UI
             foreach (Button b in itemOptionButtons)
                 b.interactable = true;
 
+            _commandShade.gameObject.SetActive(true);
             itemOptionButtons[0].Select();
         }
 
@@ -145,20 +154,24 @@ namespace MyGame.UI
             }
         }
 
-        public void OnItemSelected(int globalIndex)
+        // Button Events
+        public void OnButtonSelected(int buttonIndex)
         {
-            ItemInfo info = inventory.GetItemInfo(globalIndex);
+            ItemInfo info = _inventory.GetItemInfo(buttonIndex);
 
             inventoryInfo.name.text = info.name;
             inventoryInfo.description.text = info.description;
+
+            Button button = GetButton(buttonIndex);
+            _inventoryLight.transform.LookAt(button.transform);
         }
 
-        public void OnItemClicked(int globalIndex)
+        public void OnButtonClicked(int buttonIndex)
         {
             if (itemIndexA == -1)
             {
-                itemIndexA = globalIndex;
-                DisplayItemOptions();
+                itemIndexA = buttonIndex;
+                ActivateItemCommands();
             }
 
             else
@@ -167,13 +180,29 @@ namespace MyGame.UI
             }
         }
 
+        private Button GetButton(int buttonIndex)
+        {
+            if (buttonIndex < 10)
+                return mainWeaponButtons[buttonIndex];
+
+            else if (buttonIndex < 20)
+                return meleeWeaponButtons[buttonIndex - 10];
+
+            else if (buttonIndex < 30)
+                return itemButtons[buttonIndex - 20];
+
+            else
+                return null;
+        }
+
+        // Item Command
         public void OnUseClicked()
         {
             if (itemIndexA == -1)
                 return;
 
             else
-                inventory.UseItem(itemIndexA);
+                _inventory.UseItem(itemIndexA);
 
             ResetItemIndexes();
             DisplayInventory();
@@ -190,7 +219,7 @@ namespace MyGame.UI
                 return;
 
             else
-                inventory.DropItem(itemIndexA);
+                _inventory.DropItem(itemIndexA);
 
             ResetItemIndexes();
             DisplayInventory();

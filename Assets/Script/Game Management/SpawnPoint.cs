@@ -1,9 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
-using EnemyCharacter = MyGame.Enemy.EnemyCharacter;
+using EnemyCharacter = Game.Enemy.EnemyCharacter;
 
 
-namespace MyGame.GameManagement
+namespace Game.GameManagement
 {
 
     public class SpawnPoint : MonoBehaviour

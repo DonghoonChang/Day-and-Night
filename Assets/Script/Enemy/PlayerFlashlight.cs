@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MyGame.Player
+namespace Game.Player
 {
     public class PlayerFlashlight : MonoBehaviour
     {

@@ -1,8 +1,8 @@
 ﻿using UnityEngine;
-using UIManager = MyGame.GameManagement.UIManager;
-using ObjectInteractionResult = MyGame.Object.ObjectInteractionResult;
+using UIManager = Game.GameManagement.UIManager;
+using ObjectInteractionResult = Game.Object.ObjectInteractionResult;
 
-namespace MyGame.UI
+namespace Game.UI
 {
     public class UIFeedbackPanel : MonoBehaviour
     {

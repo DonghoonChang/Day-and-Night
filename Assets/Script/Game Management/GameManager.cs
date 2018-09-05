@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-using PlayerCharacter = MyGame.Player.PlayerCharacter;
-using PlayerStatus = MyGame.Player.PlayerStatus;
-using EnemyCharacter = MyGame.Enemy.EnemyCharacter;
+using PlayerCharacter = Game.Player.PlayerCharacter;
+using PlayerStatus = Game.Player.PlayerStatus;
+using EnemyCharacter = Game.Enemy.EnemyCharacter;
 
-namespace MyGame.GameManagement
+namespace Game.GameManagement
 {
     public class GameManager : MonoBehaviour
     {
@@ -148,11 +148,117 @@ namespace MyGame.GameManagement
         public static LayerMask CrouchVFXLayer = (1 << 12);
         public static LayerMask ItemLayer = (1 << 13);
         public static LayerMask InventoryItemLayer = (1 << 14);
-        public static LayerMask GrenadeThrownLayer = (1 << 15);
-
+        public static LayerMask GrenadeLayer = (1 << 15);
+        public static LayerMask GrenadeThrownLayer = (1 << 16);
+        
         public static LayerMask SurfaceSearchLayer = ~(IgnoreRaycastLayer + PlayerLayer + EnemyCapsuleLayer + CrouchVFXLayer + InventoryItemLayer);
         public static LayerMask BulletLayer = ~(IgnoreRaycastLayer + PlayerLayer + EnemyCapsuleLayer + InventoryItemLayer);
-        public static LayerMask ExplosionLayer = (PlayerLayer + EnemyLayer + ItemLayer + GrenadeThrownLayer);
+        public static LayerMask ExplosionLayer = (PlayerLayer + EnemyLayer + ItemLayer + GrenadeLayer + GrenadeThrownLayer);
+
+        public static int LayerToInt(LayerMask layer)
+        {
+            switch (layer)
+            {
+                case 0:
+                    return 0;
+
+                case (1 << 1):
+                    return 1;
+
+                case (1 << 2):
+                    return 2;
+
+                case (1 << 3):
+                    return 3;
+
+                case (1 << 4):
+                    return 4;
+
+                case (1 << 5):
+                    return 5;
+
+                case (1 << 6):
+                    return 6;
+
+                case (1 << 7):
+                    return 7;
+
+                case (1 << 8):
+                    return 8;
+
+                case (1 << 9):
+                    return 9;
+
+                case (1 << 10):
+                    return 10;
+
+                case (1 << 11):
+                    return 11;
+
+                case (1 << 12):
+                    return 12;
+
+                case (1 << 13):
+                    return 13;
+
+                case (1 << 14):
+                    return 14;
+
+                case (1 << 15):
+                    return 15;
+
+                case (1 << 16):
+                    return 16;
+
+                case (1 << 17):
+                    return 17;
+
+                case (1 << 18):
+                    return 18;
+
+                case (1 << 19):
+                    return 19;
+
+                case (1 << 20):
+                    return 20;
+
+                case (1 << 21):
+                    return 21;
+
+                case (1 << 22):
+                    return 22;
+
+                case (1 << 23):
+                    return 23;
+
+                case (1 << 24):
+                    return 24;
+
+                case (1 << 25):
+                    return 25;
+
+                case (1 << 26):
+                    return 26;
+
+                case (1 << 27):
+                    return 27;
+
+                case (1 << 28):
+                    return 28;
+
+                case (1 << 29):
+                    return 29;
+
+                case (1 << 30):
+                    return 30;
+
+                case (1 << 31):
+                    return 31;
+
+                default:
+                    return 0;
+            }
+        }
     }
 
     [System.Serializable]

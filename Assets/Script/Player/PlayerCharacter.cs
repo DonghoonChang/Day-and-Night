@@ -1,16 +1,16 @@
 ﻿using UnityEngine;
-using MyGame.Interface.ITakeHit;
-using MyGame.Object;
-using UIManager = MyGame.GameManagement.UIManager;
-using VFXManager = MyGame.GameManagement.VFXManager;
-using GameManager = MyGame.GameManagement.GameManager;
-using CameraManager = MyGame.GameManagement.CameraManager;
-using UIHUD = MyGame.UI.UIHUD;
-using UIFeedbackPanel = MyGame.UI.UIFeedbackPanel;
-using EnemyCharacter = MyGame.Enemy.EnemyCharacter;
+using Game.Interface.ITakeHit;
+using Game.Object;
+using UIManager = Game.GameManagement.UIManager;
+using VFXManager = Game.GameManagement.VFXManager;
+using GameManager = Game.GameManagement.GameManager;
+using CameraManager = Game.GameManagement.CameraManager;
+using UIHUD = Game.UI.UIHUD;
+using UIFeedbackPanel = Game.UI.UIFeedbackPanel;
+using EnemyCharacter = Game.Enemy.EnemyCharacter;
 
 
-namespace MyGame.Player
+namespace Game.Player
 {
     [RequireComponent(typeof(PlayerAnimator))]
     [RequireComponent(typeof(PlayerAudioPlayer))]

@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-namespace MyGame.UI
+namespace Game.UI
 {
     public class UIFloatingStats : UIFloatingCanvas
     {

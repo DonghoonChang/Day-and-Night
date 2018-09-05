@@ -2,7 +2,7 @@
 using System.Collections;
 
 
-namespace MyGame.GameManagement
+namespace Game.GameManagement
 {
     public class TimedSelfDestructCartridge : MonoBehaviour
     {

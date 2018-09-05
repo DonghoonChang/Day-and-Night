@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MyGame.UI
+namespace Game.UI
 {
     public class UIFloatingCanvas : MonoBehaviour
     {

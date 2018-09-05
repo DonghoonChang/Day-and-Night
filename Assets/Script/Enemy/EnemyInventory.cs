@@ -1,8 +1,8 @@
 ﻿using UnityEngine;
-using Item = MyGame.Object.Item;
+using Item = Game.Object.Item;
 
 
-namespace MyGame.Enemy
+namespace Game.Enemy
 {
     public class EnemyInventory : MonoBehaviour
     {

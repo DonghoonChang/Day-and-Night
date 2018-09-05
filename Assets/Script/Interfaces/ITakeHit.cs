@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MyGame.Interface.ITakeHit
+namespace Game.Interface.ITakeHit
 {
     public interface ITakeHit
     {

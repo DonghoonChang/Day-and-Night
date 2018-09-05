@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MyGame.Enemy
+namespace Game.Enemy
 {
     public class WayPoints : MonoBehaviour
     {

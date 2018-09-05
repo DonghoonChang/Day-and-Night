@@ -1,10 +1,10 @@
 ﻿using UnityEngine;
-using MyGame.UI;
-using UIManager = MyGame.GameManagement.UIManager;
-using MyGame.Object;
-using MyGame.Object.Weapon;
+using Game.UI;
+using UIManager = Game.GameManagement.UIManager;
+using Game.Object;
+using Game.Object.Weapon;
 
-namespace MyGame.Player
+namespace Game.Player
 {
     public class PlayerInventory : MonoBehaviour
     {
@@ -875,16 +875,16 @@ namespace MyGame.Player
                             // If there's Another Ammo of the Same Type
                             int ammoIndex = FindAmmo(ammo.Type);
 
+                            Debug.Log(ammoIndex);
                             if (ammoIndex != -1)
                             {
-
                                 Ammo prevAmmo = GetItem(ammoIndex) as Ammo;
                                 prevAmmo.Count += ammo.Count;
 
                                 Destroy(ammo.gameObject);
                                 UpdateAmmoHUD();
 
-                                _uiHUD.ShowResult(true, prevAmmo.name + " Added(" + prevAmmo.Count.ToString() + ")");
+                                _uiHUD.ShowResult(true, prevAmmo.Name + " Added(" + prevAmmo.Count.ToString() + ")");
                                 return true;
                             }
 
@@ -899,8 +899,6 @@ namespace MyGame.Player
 
                                 _itemInventory[emptySlotIndex] = item;
 
-                                _uiHUD.ShowResult(true, item.name + " Added");
-
                                 if (_weaponSlot.Weapon != null)
                                 {
                                     if (ammo.Type == _weaponSlot.Weapon.Properties.ammoType)
@@ -911,6 +909,7 @@ namespace MyGame.Player
                                     }
                                 }
 
+                                _uiHUD.ShowResult(true, item.Name + " Added(" + ((Ammo) item).Count.ToString() + ")");
                                 return true;
                             }
                         }

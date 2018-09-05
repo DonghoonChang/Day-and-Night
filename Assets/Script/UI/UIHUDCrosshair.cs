@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 
-public class UIHUDCrosshair : MonoBehaviour {
+namespace Game.UI
+{
+    public class UIHUDCrosshair : MonoBehaviour {
 
     #region Const Variables
 
@@ -52,4 +54,5 @@ public class UIHUDCrosshair : MonoBehaviour {
         crosshairLeft.localPosition = new Vector3(dislocation, 0, 0);
         crosshairRight.localPosition = new Vector3(-dislocation, 0, 0);
     }
+}
 }

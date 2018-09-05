@@ -3,13 +3,13 @@ using UnityEngine.AI;
 using System.Collections;
 using System.Collections.Generic;
 using Random = UnityEngine.Random;
-using UIFloatingStats = MyGame.UI.UIFloatingStats;
-using VFXManager = MyGame.GameManagement.VFXManager;
-using CameraManager = MyGame.GameManagement.CameraManager;
-using PlayerCamera = MyGame.Player.PlayerCamera;
+using UIFloatingStats = Game.UI.UIFloatingStats;
+using VFXManager = Game.GameManagement.VFXManager;
+using CameraManager = Game.GameManagement.CameraManager;
+using PlayerCamera = Game.Player.PlayerCamera;
 
 
-namespace MyGame.Enemy {
+namespace Game.Enemy {
 
     public class EnemyAnimator: MonoBehaviour
     {

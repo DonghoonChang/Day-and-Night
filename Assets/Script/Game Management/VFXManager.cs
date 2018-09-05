@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MyGame.GameManagement
+namespace Game.GameManagement
 {
     public class VFXManager : MonoBehaviour
     {

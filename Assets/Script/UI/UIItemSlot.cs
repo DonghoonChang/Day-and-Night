@@ -2,10 +2,10 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using MyGame.Object;
+using Game.Object;
 using TMPro;
 
-namespace MyGame.UI {
+namespace Game.UI {
 
     public class UIItemSlot : MonoBehaviour, ISelectHandler, IDeselectHandler
     {
@@ -69,12 +69,12 @@ namespace MyGame.UI {
 
         private void OnClickHandler()
         {
-            _inventoryPanel.OnItemClicked(_index);
+            _inventoryPanel.OnButtonClicked(_index);
         }
 
         public void OnSelect(BaseEventData eventData)
         {
-            _inventoryPanel.OnItemSelected(_index);
+            _inventoryPanel.OnButtonSelected(_index);
 
             StopAllCoroutines();
             StartCoroutine(ShowItemName());
@@ -84,7 +84,6 @@ namespace MyGame.UI {
         public void OnDeselect(BaseEventData eventData)
         {
             _itemText.text = "";
-            _itemProp.transform.localRotation = Quaternion.LookRotation(Vector3.zero);
 
             StopAllCoroutines();
         }

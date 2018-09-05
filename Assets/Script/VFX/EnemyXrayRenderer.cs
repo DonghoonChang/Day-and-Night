@@ -1,8 +1,8 @@
 ﻿using UnityEngine;
-using VFXManager = MyGame.GameManagement.VFXManager;
-using EnemyBehavior = MyGame.Enemy.EnemyBehavior;
+using VFXManager = Game.GameManagement.VFXManager;
+using EnemyBehavior = Game.Enemy.EnemyBehavior;
 
-namespace MyGame.VFX
+namespace Game.VFX
 {
     public class EnemyXrayRenderer : MonoBehaviour
     {

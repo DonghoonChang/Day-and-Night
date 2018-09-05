@@ -1,12 +1,12 @@
 ﻿using System.Collections;
 using UnityEngine;
-using GameManager = MyGame.GameManagement.GameManager;
-using RaycastLayers = MyGame.GameManagement.RaycastLayers;
-using UIManager = MyGame.GameManagement.UIManager;
-using UIHUD = MyGame.UI.UIHUD;
+using GameManager = Game.GameManagement.GameManager;
+using RaycastLayers = Game.GameManagement.RaycastLayers;
+using UIManager = Game.GameManagement.UIManager;
+using UIHUD = Game.UI.UIHUD;
 using EZCameraShake;
 
-namespace MyGame.Player
+namespace Game.Player
 {
     public class PlayerCamera : MonoBehaviour
     {
@@ -14,7 +14,7 @@ namespace MyGame.Player
         PlayerCharacter _player;
         GameManager _gameManager;
 
-        [SerializeField] Transform _cameraBase;
+        [SerializeField] Transform _cameraPivot;
         [SerializeField] Transform _camerasPosition;
         [SerializeField] Camera _mainCamera;
         [SerializeField] Camera _vfxCamera;
@@ -27,6 +27,7 @@ namespace MyGame.Player
         float _yaw = 0;
         float _pitch = 0;
         bool _scopeVisible = false;
+
         InteractableObject _interactable = null;
         IEnumerator scopeCoroutine;
 
@@ -133,7 +134,7 @@ namespace MyGame.Player
 
         void UpdateCamBase()
         {
-            transform.position = Vector3.Lerp(transform.position, _cameraBase.position, camConfig.camTightness * GameTime.deltaTime);
+            transform.position = Vector3.Lerp(transform.position, _cameraPivot.position, camConfig.camTightness * GameTime.deltaTime);
         }
 
         void UpdatePitchYawScroll()
@@ -206,9 +207,31 @@ namespace MyGame.Player
             {
                 _raycastPoint.transform.position = hit.point;
 
-                InteractableObject interactable = hit.transform.root.GetComponent<InteractableObject>();
+                InteractableObject interactable;
+                interactable = hit.transform.GetComponent<InteractableObject>();
 
-                InteractableObject = interactable;
+                // Itself
+                if (interactable != null)
+                    InteractableObject = interactable;
+                
+                else
+                {
+                    // Parent
+                    if (hit.transform.parent != null)
+                        interactable = hit.transform.parent.GetComponent<InteractableObject>();
+
+                    if (interactable != null)
+                        InteractableObject = interactable;
+
+                    else
+                    {
+
+                        // Root (End)
+                        interactable = hit.transform.root.GetComponent<InteractableObject>();
+
+                        InteractableObject = interactable;
+                    }
+                }
             }
 
             else

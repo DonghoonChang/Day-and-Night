@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
-using VFXManager = MyGame.GameManagement.VFXManager;
+using VFXManager = Game.GameManagement.VFXManager;
 
-namespace MyGame.VFX
+namespace Game.VFX
 {
     public class ItemXrayRenderer : MonoBehaviour
     {

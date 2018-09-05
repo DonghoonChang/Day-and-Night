@@ -1,11 +1,11 @@
 ﻿using UnityEngine;
 using UnityEngine.Events;
-using CameraManager = MyGame.GameManagement.CameraManager;
-using WeaponGroup = MyGame.Object.WeaponGroup;
-using WeaponType = MyGame.Object.WeaponType;
-using EnemyCharacter = MyGame.Enemy.EnemyCharacter;
+using CameraManager = Game.GameManagement.CameraManager;
+using WeaponGroup = Game.Object.WeaponGroup;
+using WeaponType = Game.Object.WeaponType;
+using EnemyCharacter = Game.Enemy.EnemyCharacter;
 
-namespace MyGame.Player
+namespace Game.Player
 {
     public class PlayerAnimator : MonoBehaviour
     {

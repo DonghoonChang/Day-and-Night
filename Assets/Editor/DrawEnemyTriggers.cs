@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 
-namespace MyGame.GUI
+namespace Game.GUI
 {
     [CustomEditor(typeof(Enemy.EnemyCharacter))]
     public class DrawEnemyTriggers : Editor

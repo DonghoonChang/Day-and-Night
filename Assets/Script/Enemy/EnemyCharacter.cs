@@ -1,14 +1,14 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Events;
-using MyGame.Interface.ITakeHit;
-using Behavior = MyGame.Enemy.EnemyBehavior;
-using UIFloatingStats = MyGame.UI.UIFloatingStats;
-using EnemyXrayRenderer = MyGame.VFX.EnemyXrayRenderer;
-using GameManager = MyGame.GameManagement.GameManager;
-using RaycastLayers = MyGame.GameManagement.RaycastLayers;
+using Game.Interface.ITakeHit;
+using Behavior = Game.Enemy.EnemyBehavior;
+using UIFloatingStats = Game.UI.UIFloatingStats;
+using EnemyXrayRenderer = Game.VFX.EnemyXrayRenderer;
+using GameManager = Game.GameManagement.GameManager;
+using RaycastLayers = Game.GameManagement.RaycastLayers;
 
-namespace MyGame.Enemy
+namespace Game.Enemy
 {
     [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(NavMeshAgent))]

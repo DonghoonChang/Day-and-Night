@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MyGame.UI
+namespace Game.UI
 {
     public class UIHUD : MonoBehaviour
     {
@@ -53,9 +53,9 @@ namespace MyGame.UI
             _message.ShowInteractableName(name);
         }
 
-        public void SetPromptMessage(string msg, int speed)
+        public void ShowPrompt(string msg, int speed = 2, float clearTime = 3f)
         {
-            _message.ShowPrompt(msg, speed);
+            _message.ShowPrompt(msg, speed, clearTime);
         }
 
         // Status HUD

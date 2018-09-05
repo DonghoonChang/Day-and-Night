@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
-using PlayerCamera = MyGame.Player.PlayerCamera;
+using PlayerCamera = Game.Player.PlayerCamera;
 
-namespace MyGame.GameManagement
+namespace Game.GameManagement
 {
     public class CameraManager : MonoBehaviour
     {

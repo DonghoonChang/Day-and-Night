@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using TMPro;
 
-namespace MyGame.UI
+namespace Game.UI
 {
     public class UIHUDInteractableName : MonoBehaviour
     {

@@ -2,7 +2,7 @@
 using UnityEngine.UI;
 using TMPro;
 
-namespace MyGame.UI
+namespace Game.UI
 {
     public class UIHUDStatusBar : MonoBehaviour
     {

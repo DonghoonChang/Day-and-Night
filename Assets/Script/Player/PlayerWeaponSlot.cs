@@ -1,9 +1,9 @@
 ﻿using UnityEngine;
 using UnityEngine.Events;
-using MyGame.Object;
-using GameManager = MyGame.GameManagement.GameManager;
+using Game.Object;
+using GameManager = Game.GameManagement.GameManager;
 
-namespace MyGame.Player
+namespace Game.Player
 {
     public class PlayerWeaponSlot : MonoBehaviour
     {

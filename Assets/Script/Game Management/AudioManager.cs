@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MyGame.GameManagement
+namespace Game.GameManagement
 {
     /* Game Music Management */
     public class AudioManager : MonoBehaviour

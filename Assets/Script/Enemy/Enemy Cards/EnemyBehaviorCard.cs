@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MyGame.Enemy
+namespace Game.Enemy
 {
     [CreateAssetMenu(fileName = "Enemy", menuName = "Enemy/EnemyBehaviorCard")]
     public class EnemyBehaviorCard : ScriptableObject
