@@ -10,9 +10,11 @@ Below are footages of the various aspects of the game in the current status. I t
 
 ## Zombies
 ![zombies](https://user-images.githubusercontent.com/28885052/46619968-29ece700-cb6f-11e8-9a97-72a1157034ce.gif)
+They are 4 of the 15+ zombies models that I have acquired (either purchased or free-to-use copyrighted). 
 
 ## Zombie Walking
 ![zombie walking](https://user-images.githubusercontent.com/28885052/46619967-28bbba00-cb6f-11e8-885e-eec7b5a78e9c.gif)
+Due to Mecanim system in Unity3D, I used any humanoid animations that I could acquire online (mostly from Unity Asset Store and Mixamo.com)
 
 ## Zombie Chase and Camera Shake
 ![zombie chase and camera shake](https://user-images.githubusercontent.com/28885052/46619961-25c0c980-cb6f-11e8-8b2e-c897d49db86a.gif)
