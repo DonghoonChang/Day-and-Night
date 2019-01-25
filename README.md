@@ -5,9 +5,6 @@ to create a game that has the same chilling and intense atmosphere. This game is
 
 Below are footages of the various aspects of the game in the current status. I tried to make the game intuitive and require no trick controls. I will upload the playable demo once I complete the first level. Currently only the mechanics of the game is available.
 
-## Shooting
-![shooting](https://user-images.githubusercontent.com/28885052/46619949-20fc1580-cb6f-11e8-9175-9919846341a2.gif)
-
 ## Zombies
 ![zombies](https://user-images.githubusercontent.com/28885052/46619968-29ece700-cb6f-11e8-9a97-72a1157034ce.gif)
 They are 4 of the 15+ zombies models that I have acquired (either purchased or free-to-use copyrighted). 
